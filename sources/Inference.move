@@ -1,9 +1,10 @@
 module tensorflowsui::Inference {
-    use tensorflowsui::Tensor;
+    use tensorflowsui::Tensor::{ Tensor};
     use tensorflowsui::Graph;
     use tensorflowsui::Model;
+    use std::debug::print;
 
-    public fun run() {
+    public fun run(input: vector<u64>): Tensor {
         // 1. 그래프 생성
         let mut graph = Graph::create();
 
@@ -18,8 +19,14 @@ module tensorflowsui::Inference {
         Graph::set_layer_weights(&mut graph, b"conv1", vector[3, 4, 9], 2);
 
         // 4. 추론 실행
-        let inputs = vector[1, 2]; // 입력 텐서
+        let inputs = input; // 입력 텐서
         let output_tensor = Model::model(inputs, &graph);
+
+        std::debug::print(&output_tensor);
+
+        output_tensor
+
+
 
     }
 
