@@ -122,23 +122,38 @@ module tensorflowsui::Graph {
 //         }
 //     }
 
-// 레이어의 가중치 설정
-public fun set_layer_weights(graph: &mut Graph, name: vector<u8>, weights: vector<u64>, bias: vector<u64>) {
-    let len = vector::length(&graph.layers); // 그래프 길이 가져오기
-    let mut z = 0;
+// // 레이어의 가중치 설정
+// public fun set_layer_weights(graph: &mut Graph, name: vector<u8>, weights: vector<u64>, bias: vector<u64>) {
+//     let len = vector::length(&graph.layers); // 그래프 길이 가져오기
+//     let mut z = 0;
 
-    while ( z < len ) {
-        if (vector::borrow(&graph.layers, z).name == name) {
-            // 레이어를 수정
-            vector::borrow_mut(&mut graph.layers, z).weights = weights;
-            vector::borrow_mut(&mut graph.layers, z).bias = bias;
+//     while ( z < len ) {
+//         if (vector::borrow(&graph.layers, z).name == name) {
+//             // 레이어를 수정
+//             vector::borrow_mut(&mut graph.layers, z).weights = weights;
+//             vector::borrow_mut(&mut graph.layers, z).bias = bias;
             
+//         };
+//         z = z +1;
+//     }
+
+// }
+
+
+    public fun set_layer_weights(graph: &mut Graph, name: vector<u8>, weights: vector<u64>, bias: vector<u64>) {
+        let len = vector::length(&graph.layers);
+        let mut i = 0;
+        while (i < len) {
+            let layer = vector::borrow_mut(&mut graph.layers, i);
+            if (layer.name == name) {
+                layer.weights = weights;
+                layer.bias = bias;
+                return;
+            };
+            i = i + 1;
         };
-        z = z +1;
+        abort 1; // 레이어가 없으면 오류 발생
     }
-
-}
-
 
 
 
