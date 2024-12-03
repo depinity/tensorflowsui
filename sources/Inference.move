@@ -1,9 +1,13 @@
 module tensorflowsui::Inference {
-    use tensorflowsui::Tensor::{ Tensor};
+    use tensorflowsui::Tensor::{ Tensor, get_data, get_shape};
     use tensorflowsui::Graph;
     use tensorflowsui::Model;
     // use std::debug::print;
-    // use sui::event;
+    use sui::event;
+
+    public struct Result has copy, drop {
+    result: vector<u64>
+}
 
     public fun run(input: vector<u64>): Tensor {
         // 1. 그래프 생성
@@ -17,16 +21,21 @@ module tensorflowsui::Inference {
         Graph::set_layer_weights(&mut graph, b"dense2", vector[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12], vector[1, 1, 1, 1]);
         Graph::set_layer_weights(&mut graph, b"output", vector[1, 2, 3, 4, 5, 6, 7, 8], vector[1, 1]);
 
+        let output_tensor2 = Model::model(input, &mut graph);
         // 4. 결과 디버깅 및 반환
 
-        // let p = get_data(&output_tensor);
+        let result = get_data(&output_tensor2);
+        
         // std::debug::print(&p);
-        output_tensor
+        event::emit(Result {result});
 
-        // event::emits(output)
+        output_tensor2
+
+        // sui::event::emits(output)
 
 
 
     }
+
 
 }

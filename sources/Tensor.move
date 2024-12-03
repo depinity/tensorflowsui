@@ -4,13 +4,13 @@ module tensorflowsui::Tensor {
         data: vector<u64>,     // 텐서의 데이터
     }
 
-    // public fun get_data(tensor: &Tensor): vector<u64> {
-    //     tensor.data
-    // }
+    public fun get_data(tensor: &Tensor): vector<u64> {
+        tensor.data
+    }
 
-    // public fun get_shape(tensor: &Tensor): vector<u64> {
-    //     tensor.shape
-    // }
+    public fun get_shape(tensor: &Tensor): vector<u64> {
+        tensor.shape
+    }
 
 
 
