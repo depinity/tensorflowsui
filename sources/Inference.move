@@ -2,7 +2,8 @@ module tensorflowsui::Inference {
     use tensorflowsui::Tensor::{ Tensor};
     use tensorflowsui::Graph;
     use tensorflowsui::Model;
-    use std::debug::print;
+    // use std::debug::print;
+    // use sui::event;
 
     public fun run(input: vector<u64>): Tensor {
         // 1. 그래프 생성
@@ -17,8 +18,12 @@ module tensorflowsui::Inference {
         Graph::set_layer_weights(&mut graph, b"output", vector[1, 2, 3, 4, 5, 6, 7, 8], vector[1, 1]);
 
         // 4. 결과 디버깅 및 반환
-        std::debug::print(&output_tensor);
+
+        // let p = get_data(&output_tensor);
+        // std::debug::print(&p);
         output_tensor
+
+        // event::emits(output)
 
 
 
