@@ -17,25 +17,30 @@ module tensorflowsui::Model_tests {
         let dense2 = Graph_tests::get_layer(graph, b"dense2");
         let output_layer = Graph_tests::get_layer(graph, b"output");
 
-        let mut x = Graph::apply_dense(
+
+
+        std::debug::print(&std::string::utf8(b"dense 1 layer"));
+        let mut x = Graph_tests::apply_dense(
             inputs,
-            &Graph::get_weights(dense1),
-            &Graph::get_bias(dense1),
-            Graph::get_output_nodes(dense1),
+            &Graph_tests::get_weights(dense1),
+            &Graph_tests::get_bias(dense1),
+            Graph_tests::get_output_nodes(dense1),
         );
 
-        x = Graph::apply_dense(
+        std::debug::print(&std::string::utf8(b"dense 2 layer"));
+        x = Graph_tests::apply_dense(
              x,
-             &Graph::get_weights(dense2),
-             &Graph::get_bias(dense2),
-             Graph::get_output_nodes(dense2),
+             &Graph_tests::get_weights(dense2),
+             &Graph_tests::get_bias(dense2),
+             Graph_tests::get_output_nodes(dense2),
         );
 
-        let output = Graph::apply_dense(
+        std::debug::print(&std::string::utf8(b"output layer"));
+        let output = Graph_tests::apply_dense(
              x,
-             &Graph::get_weights(output_layer),
-             &Graph::get_bias(output_layer),
-             Graph::get_output_nodes(output_layer),
+             &Graph_tests::get_weights(output_layer),
+             &Graph_tests::get_bias(output_layer),
+             Graph_tests::get_output_nodes(output_layer),
         );
 
         tensorflowsui::Tensor::create(vector[vector::length(&output)], output)
