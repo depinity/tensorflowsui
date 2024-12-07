@@ -56,6 +56,9 @@ module tensorflowsui::Inference_tests {
 
         // 5. debugging
         let result = get_data(&output_tensor2);
+
+        std::debug::print(&std::string::utf8(b"model resuls:"));
+        debug::print(&result);
         
         output_tensor2
 

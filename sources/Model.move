@@ -17,6 +17,8 @@ module tensorflowsui::Model {
         let dense2 = Graph::get_layer(graph, b"dense2");
         let output_layer = Graph::get_layer(graph, b"output");
 
+
+        std::debug::print(&std::string::utf8(b"dense 1 layer"));
         let mut x = Graph::apply_dense(
             inputs,
             &Graph::get_weights(dense1),
@@ -24,6 +26,7 @@ module tensorflowsui::Model {
             Graph::get_output_nodes(dense1),
         );
 
+        std::debug::print(&std::string::utf8(b"dense 2 layer"));
         x = Graph::apply_dense(
              x,
              &Graph::get_weights(dense2),
@@ -31,6 +34,7 @@ module tensorflowsui::Model {
              Graph::get_output_nodes(dense2),
         );
 
+        std::debug::print(&std::string::utf8(b"output layer"));
         let output = Graph::apply_dense(
              x,
              &Graph::get_weights(output_layer),
@@ -43,29 +47,4 @@ module tensorflowsui::Model {
     }
     
 
-
-//  // 레이어 호출을 통한 연산
-//         let mut x = Graph::apply_dense(
-//             inputs,
-//             &Graph::get_weights(&dense1),
-//             &Graph::get_bias(&dense1),
-//             Graph::get_output_nodes(&dense1),
-//         );
-
-//         x = Graph::apply_dense(
-//             x,
-//             &Graph::get_weights(&dense2),
-//             &Graph::get_bias(&dense2),
-//             Graph::get_output_nodes(&dense2),
-//         );
-
-//         let output = Graph::apply_dense(
-//             x,
-//             &Graph::get_weights(&output_layer),
-//             &Graph::get_bias(&output_layer),
-//             Graph::get_output_nodes(&output_layer),
-//         );
-
-//          tensorflowsui::Tensor::create(vector[vector::length(&output)], output)
-//     }
 }

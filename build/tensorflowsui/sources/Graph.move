@@ -1,5 +1,9 @@
 module tensorflowsui::Graph {
 
+
+    use std::debug;
+
+
     public struct Layer has copy, drop {
         name: vector<u8>,          // layer names
         layer_type: vector<u8>,    // layer types (Dense, Conv2D)
@@ -68,6 +72,14 @@ module tensorflowsui::Graph {
         bias
     }
 
+    public fun ReLu(weighted_sum : u64): u64 {
+        if (weighted_sum > 0) {
+            weighted_sum
+        } else {
+            0
+        }
+    }
+
     public fun Dense(graph: &mut Graph, input_nodes: u64, output_nodes: u64, name: vector<u8>): Layer {
 
         let weights = initialize_weights(input_nodes, output_nodes);
@@ -130,7 +142,28 @@ module tensorflowsui::Graph {
     public fun apply_dense(inputs: vector<u64>, weights: &vector<u64>, bias: &vector<u64>, output_nodes: u64): vector<u64> {
     let mut result = vector::empty<u64>();
     let input_size = vector::length(&inputs);
+    let max_computation = input_size * output_nodes;
 
+        std::debug::print(&std::string::utf8(b"input vector:"));
+        debug::print(&inputs);
+
+
+
+        std::debug::print(&std::string::utf8(b"input number:"));
+        debug::print(&input_size);
+        
+        std::debug::print(&std::string::utf8(b"output number:"));
+        debug::print(&output_nodes);
+
+        std::debug::print(&std::string::utf8(b"max computation:"));
+        debug::print(&max_computation);
+
+        debug::print(weights);
+        debug::print(bias);
+        
+        debug::print(&output_nodes);
+
+    
     // assert!(vector::length(weights) == input_size * output_nodes, 1);
     // assert!(vector::length(bias) == output_nodes, 2);
 
@@ -140,16 +173,26 @@ module tensorflowsui::Graph {
         let mut weighted_sum = 0;
         let mut j = 0;
 
-        while (j < input_size-1) {
-            let weight_index = i * (input_size-1) + j;
-            if (weight_index >= vector::length(weights)) {
-                abort(1); 
-            };
-            weighted_sum = weighted_sum + (inputs[j] * weights[i * (input_size-1) + j]);
+        while (j < input_size) {
+            let weight_index = i * (input_size) + j;
+           
+            std::debug::print(&std::string::utf8(b"i number:"));
+            debug::print(&i);
+
+            std::debug::print(&std::string::utf8(b"j number:"));
+            debug::print(&j);
+
+
+            std::debug::print(&std::string::utf8(b"weigth_index:"));
+            debug::print(& weight_index);
+
+
+            weighted_sum = weighted_sum + (inputs[j] * weights[weight_index]);
             j = j + 1;
         };
 
         weighted_sum = weighted_sum + *vector::borrow(bias, i);
+        weighted_sum = ReLu(weighted_sum);
         vector::push_back(&mut result, weighted_sum);
         i = i + 1;
     };
