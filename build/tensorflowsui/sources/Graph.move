@@ -181,13 +181,22 @@ module tensorflowsui::Graph {
     let mut result = vector::empty<u64>();
     let input_size = vector::length(&inputs);
 
+    
+    assert!(vector::length(weights) == input_size * output_nodes, 1);
+    assert!(vector::length(bias) == output_nodes, 2);
+
+    
     let mut i = 0;
     while (i < output_nodes) {
         let mut weighted_sum = 0;
         let mut j = 0;
 
-        while (j < input_size) {
-            weighted_sum = weighted_sum + (inputs[j] * weights[i * input_size + j]);
+        while (j < input_size-1) {
+            let weight_index = i * (input_size-1) + j;
+            if (weight_index >= vector::length(weights)) {
+                abort(1); // 가중치 인덱스 유효성 확인
+            };
+            weighted_sum = weighted_sum + (inputs[j] * weights[i * (input_size-1) + j]);
             j = j + 1;
         };
 

@@ -18,33 +18,34 @@ module tensorflowsui::Model {
 
     }
 
-    public fun run_inference(inputs: vector<u64>, graph: &mut Graph::Graph): Tensor {
+    public fun run_inference(inputs: vector<u64>, graph: &Graph::Graph): Tensor {
 
         let dense1 = Graph::get_layer(graph, b"dense1");
         let dense2 = Graph::get_layer(graph, b"dense2");
         let output_layer = Graph::get_layer(graph, b"output");
 
         // 연산 수행
-        let mut x = Graph::apply_dense(
+        let mut output = Graph::apply_dense(
             inputs,
             &Graph::get_weights(dense1),
             &Graph::get_bias(dense1),
             Graph::get_output_nodes(dense1),
         );
 
-        x = Graph::apply_dense(
-            x,
-            &Graph::get_weights(dense2),
-            &Graph::get_bias(dense2),
-            Graph::get_output_nodes(dense2),
-        );
+        // let mut output = Graph::apply_dense(
+        //     x,
+        //     &Graph::get_weights(dense2),
+        //     &Graph::get_bias(dense2),
+        //     Graph::get_output_nodes(dense2),
+        // );
 
-        let output = Graph::apply_dense(
-            x,
-            &Graph::get_weights(output_layer),
-            &Graph::get_bias(output_layer),
-            Graph::get_output_nodes(output_layer),
-        );
+        // let output = Graph::apply_dense(
+        //     x,
+        //     &Graph::get_weights(output_layer),
+        //     &Graph::get_bias(output_layer),
+        //     Graph::get_output_nodes(output_layer),
+        // );
+
 
         // 텐서 생성 및 반환
         tensorflowsui::Tensor::create(vector[vector::length(&output)], output)

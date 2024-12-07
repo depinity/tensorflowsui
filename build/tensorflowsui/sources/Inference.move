@@ -1,16 +1,32 @@
+
 module tensorflowsui::Inference {
     use tensorflowsui::Tensor::{ Tensor, get_data, get_shape};
     use tensorflowsui::Graph;
     use tensorflowsui::Model;
-    // use std::debug::print;
-    use sui::event;
 
-    public struct Result has copy, drop {
-    result: vector<u64>
-}
+    use std::debug;
+   
+    public fun check(chk_input : vector<u8>) : vector<u8>{
 
-    // public fun run(input: vector<u64>): Tensor {
-            public fun run(input: vector<u64>) {
+        debug::print(&chk_input);
+
+        debug::print(&chk_input.length());
+
+        debug::print(&chk_input[0]);
+        debug::print(&chk_input[1]);
+        debug::print(&chk_input[2]);
+
+        debug::print_stack_trace();
+        chk_input
+
+    }
+
+    public fun run(inputs: vector<u64>): Tensor {
+            // public fun run(input: vector<u64>) {
+
+        debug::print(&inputs);
+
+        debug::print_stack_trace();
         // 1. 그래프 생성
         let mut graph = Graph::create();
 
@@ -26,17 +42,15 @@ module tensorflowsui::Inference {
         Graph::set_layer_weights(&mut graph, b"output", vector[1, 2, 3, 4, 5, 6, 7, 8], vector[1, 1]);
 
         // let output_tensor2 = Model::model(input, &mut graph);
-        // let output_tensor2 = Model::run_inference(input, &mut graph);
+        let output_tensor2 = Model::run_inference(inputs, &graph);
 
         // // 4. 결과 디버깅 및 반환
 
-        // let result = get_data(&output_tensor2);
+        let result = get_data(&output_tensor2);
         
-        // // std::debug::print(&p);
-        // event::emit(Result {result});
 
         // sample_tensor = Tensor::create
-        // output_tensor2
+        output_tensor2
 
         // sui::event::emits(output)
 
