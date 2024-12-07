@@ -33,9 +33,7 @@ module tensorflowsui::Inference_tests {
         std::debug::print(&std::string::utf8(b"run graph init:"));
         debug::print(&graph);
 
-        // 2. create model 
-        // let output_tensor = Model::model(input, &mut graph);
-
+        // 2. create model
         Model_tests::create_model(&mut graph);
 
         std::debug::print(&std::string::utf8(b"run graph after create model:"));
@@ -57,7 +55,6 @@ module tensorflowsui::Inference_tests {
         let output_tensor2 = Model_tests::run_inference(inputs, &graph);
 
         // 5. debugging
-
         let result = get_data(&output_tensor2);
         
         output_tensor2

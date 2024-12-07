@@ -18,7 +18,6 @@ module tensorflowsui::Model_tests {
         let output_layer = Graph_tests::get_layer(graph, b"output");
 
 
-
         std::debug::print(&std::string::utf8(b"dense 1 layer"));
         let mut x = Graph_tests::apply_dense(
             inputs,
