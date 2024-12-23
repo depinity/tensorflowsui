@@ -1,5 +1,6 @@
 module tensorflowsui::Graph_new_tests {
     use std::debug;
+   
 
     /// 레이어 정의
     public struct Layer has copy, drop {
@@ -14,32 +15,6 @@ module tensorflowsui::Graph_new_tests {
     /// 그래프 구조
     public struct Graph has drop {
         layers: vector<Layer>,
-    }
-
-    /// sign bit 확인: 최상위 비트가 1이면 음수
-    fun is_neg(x: u64): bool {
-        (x >> 63) == 1
-    }
-
-    /// ReLU (signed): x가 음수이면 0, 아니면 x 그대로
-    fun signed_relu(x: u64): u64 {
-        if (is_neg(x)) {
-            // 음수
-            0
-        } else {
-            // 양수나 0이면 그대로 반환
-            x
-        }
-    }
-
-    /// 덧셈 (2의 보수): 단순 u64 덧셈으로 2의 보수 연산 가능
-    fun signed_add(a: u64, b: u64): u64 {
-        a + b
-    }
-
-    /// 곱셈 (2의 보수): 단순 u64 곱셈
-    fun signed_mul(a: u64, b: u64): u64 {
-        a * b
     }
 
     /// 그래프 관련 함수들

@@ -1,6 +1,6 @@
 module tensorflowsui::Model_tests {
     use tensorflowsui::Graph_tests;
-    use tensorflowsui::Tensor::{ Tensor};
+    use tensorflowsui::Tensor_test::{ Tensor};
 
     public fun create_model(graph: &mut Graph_tests::Graph){
 
@@ -42,7 +42,7 @@ module tensorflowsui::Model_tests {
              Graph_tests::get_output_nodes(output_layer),
         );
 
-        tensorflowsui::Tensor::create(vector[vector::length(&output)], output)
+        tensorflowsui::Tensor_test::create(vector[vector::length(&output)], output)
 
     }
     

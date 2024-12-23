@@ -3,6 +3,282 @@ module tensorflowsui::Graph_tests {
 
     use std::debug;
 
+    use tensorflowsui::Tensor_test::{
+        SignedFixedTensor, get_scale,get_magnitude,get_shape,get_sign,
+        create_signed_fixed,
+        scale_up,
+        debug_print_tensor
+    };
+
+
+    public struct SignedFixedLayer has copy, drop {
+        name: vector<u8>,
+        layer_type: vector<u8>,
+        in_dim: u64,
+        out_dim: u64,
+        weight_tensor: SignedFixedTensor,  // shape=[in_dim, out_dim], scale=??
+        bias_tensor: SignedFixedTensor,    // shape=[out_dim], same scale
+    }
+
+    public struct SignedFixedGraph has drop {
+        layers: vector<SignedFixedLayer>,
+    }
+
+
+    public fun create_signed_graph(): SignedFixedGraph {
+        SignedFixedGraph { layers: vector::empty<SignedFixedLayer>() }
+    }
+
+ // DenseSignedFixed: in_dim/out_dim, (초기 weight=1, etc.), scale=2
+    public fun DenseSignedFixed(
+        graph: &mut SignedFixedGraph,
+        in_dim: u64,
+        out_dim: u64,
+        name: vector<u8>,
+        scale: u64
+    ): SignedFixedLayer {
+        let weight_count = in_dim * out_dim;
+        let mut mag_w = vector::empty<u64>();
+        let mut sgn_w = vector::empty<u64>();
+
+        let mut i = 0;
+        while (i < weight_count) {
+            vector::push_back(&mut mag_w, 1);  // default 1
+            vector::push_back(&mut sgn_w, 0);  // +1
+            i = i + 1;
+        };
+
+        let weight_tensor = create_signed_fixed(
+            vector[in_dim, out_dim],
+            mag_w,
+            sgn_w,
+            scale
+        );
+
+        // bias
+        let mut mag_b = vector::empty<u64>();
+        let mut sgn_b = vector::empty<u64>();
+
+        let mut j = 0;
+        while (j < out_dim) {
+            vector::push_back(&mut mag_b, 0);
+            vector::push_back(&mut sgn_b, 0);
+            j = j + 1;
+        };
+        let bias_tensor = create_signed_fixed(
+            vector[out_dim],
+            mag_b,
+            sgn_b,
+            scale
+        );
+
+        let layer = SignedFixedLayer {
+            name,
+            layer_type: b"dense_sf",
+            in_dim,
+            out_dim,
+            weight_tensor,
+            bias_tensor
+        };
+
+        vector::push_back(&mut graph.layers, layer);
+        layer
+    }
+
+
+// set_layer_weights_signed_fixed: Python에서 구한 (magnitude,sign)으로 대입
+    public fun set_layer_weights_signed_fixed(
+        graph: &mut SignedFixedGraph,
+        name: vector<u8>,
+        weight_magnitude: vector<u64>,
+        weight_sign: vector<u64>,
+        bias_magnitude: vector<u64>,
+        bias_sign: vector<u64>,
+        in_dim: u64,
+        out_dim: u64,
+        scale: u64
+    ) {
+        let len = vector::length(&graph.layers);
+        let mut i = 0;
+        while (i < len) {
+            let layer = vector::borrow_mut(&mut graph.layers, i);
+            if (layer.name == name) {
+                // 새 tensor
+                layer.weight_tensor = create_signed_fixed(
+                    vector[in_dim, out_dim],
+                    weight_magnitude,
+                    weight_sign,
+                    scale
+                );
+                layer.bias_tensor = create_signed_fixed(
+                    vector[out_dim],
+                    bias_magnitude,
+                    bias_sign,
+                    scale
+                );
+                return;
+            };
+            i = i + 1;
+        };
+        abort 4444;
+    }
+
+    // get_layer_signed_fixed
+    public fun get_layer_signed_fixed(graph: &SignedFixedGraph, name: vector<u8>): &SignedFixedLayer {
+        let mut i = 0;
+        while (i < vector::length(&graph.layers)) {
+            let layer = vector::borrow(&graph.layers, i);
+            if (layer.name == name) {
+                return layer;
+            };
+            i = i + 1;
+        };
+        abort 9999
+    }
+
+    //
+    // ----------------------------------------------------
+    // 3) apply_dense_signed_fixed (행렬 곱 + bias + ReLU)
+    // ----------------------------------------------------
+    /// scale 처리는 “곱 => 2s, bias => s->2s 맞춤, 최종 s”
+    public fun apply_dense_signed_fixed(
+        input_tensor: &SignedFixedTensor,
+        weight_tensor: &SignedFixedTensor,
+        bias_tensor: &SignedFixedTensor
+    ): SignedFixedTensor {
+        // input: shape=[batch, in_dim]
+        // weight: shape=[in_dim, out_dim]
+        // bias: shape=[out_dim]
+        // => output: shape=[batch, out_dim]
+
+        let batch = *vector::borrow(&get_shape(input_tensor), 0);
+        let in_dim = *vector::borrow(&get_shape(input_tensor), 1);
+        let w_in = *vector::borrow(&get_shape(weight_tensor), 0);
+        let w_out= *vector::borrow(&get_shape(weight_tensor), 1);
+        let b_out= *vector::borrow(&get_shape(bias_tensor), 0);
+
+        assert!(in_dim == w_in, 10001);
+        assert!(w_out == b_out, 10002);
+
+        // scale
+        let s =  get_scale(input_tensor);
+        assert!(s == get_scale(weight_tensor), 10003);
+        assert!(s == get_scale(bias_tensor),   10004);
+
+        let mut out_shape = vector::empty<u64>();
+        vector::push_back(&mut out_shape, batch);
+        vector::push_back(&mut out_shape, w_out);
+
+        let mut out_mag = vector::empty<u64>();
+        let mut out_sign= vector::empty<u64>();
+
+        let mut b_idx = 0;
+        while (b_idx < batch) {
+            let mut j_idx = 0;
+            while (j_idx < w_out) {
+                // acc => scale=2s
+                let mut acc_sgn = 0;
+                let mut acc_mag = 0;
+
+                // (행렬 곱)
+                let mut i_idx = 0;
+                while (i_idx < in_dim) {
+                    let in_index = b_idx*in_dim + i_idx;
+                    let w_index  = i_idx*w_out + j_idx;
+                                                   
+                    let in_s = *vector::borrow(& get_sign(input_tensor), in_index);
+                    let in_m = *vector::borrow(&get_magnitude(input_tensor), in_index);
+                    let w_s  = *vector::borrow(&get_sign(weight_tensor), w_index);
+                    let w_m  = *vector::borrow(&get_magnitude(weight_tensor), w_index);
+
+                    // 곱 => scale=2s
+                    let mul_s = if (in_s == w_s) { 0 } else { 1 };
+                    let mul_m = in_m * w_m;
+
+                    let (acc2_s, acc2_m) = signed_add_element(
+                        acc_sgn, acc_mag,
+                        mul_s,   mul_m
+                    );
+                    acc_sgn = acc2_s;
+                    acc_mag = acc2_m;
+
+                    i_idx = i_idx + 1;
+                };
+
+                // bias => scale=s -> 2s
+                let factor = scale_up(1, s);
+                let b_s  = *vector::borrow(&get_sign(bias_tensor), j_idx);
+                let b_m  = *vector::borrow(&get_magnitude(bias_tensor), j_idx);
+                let b_m_2s = b_m * factor;
+
+                let (acc3_s, acc3_m) = signed_add_element(
+                    acc_sgn, acc_mag,
+                    b_s,     b_m_2s
+                );
+
+                // ReLU => 음수=0
+                let mut final_s = acc3_s;
+                let mut final_m = acc3_m;
+                if (final_s == 1) {
+                    final_s = 0;
+                    final_m = 0;
+                };
+
+                // 최종 => scale=s (2s -> s)
+                let divisor = scale_up(1, s);
+                let rounded_m = final_m / divisor;
+
+                vector::push_back(&mut out_sign, final_s);
+                vector::push_back(&mut out_mag,  rounded_m);
+
+                j_idx = j_idx + 1;
+            };
+            b_idx = b_idx + 1;
+        };
+
+        create_signed_fixed(out_shape, out_mag, out_sign, s)
+    }
+
+    fun signed_add_element(
+        s1: u64, m1: u64,
+        s2: u64, m2: u64
+    ): (u64, u64) {
+        if (s1 == s2) {
+            (s1, m1 + m2)
+        } else {
+            if (m1 >= m2) {
+                (s1, m1 - m2)
+            } else {
+                (s2, m2 - m1)
+            }
+        }
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    //////////////////////////////////////////////////
+
 
     public struct Layer has copy, drop {
         name: vector<u8>,          // layer names

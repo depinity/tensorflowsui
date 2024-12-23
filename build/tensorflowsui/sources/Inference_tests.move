@@ -1,7 +1,7 @@
 
 #[test_only]
 module tensorflowsui::Inference_tests {
-    use tensorflowsui::Tensor::{ Tensor, get_data, get_shape};
+    use tensorflowsui::Tensor_test::{ Tensor, get_data, get_shape};
     use tensorflowsui::Graph_tests;
     use tensorflowsui::Model_tests;
 
