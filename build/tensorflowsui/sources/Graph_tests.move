@@ -29,6 +29,16 @@ module tensorflowsui::Graph_tests {
         SignedFixedGraph { layers: vector::empty<SignedFixedLayer>() }
     }
 
+    // Getter 함수들 (field를 반환)
+    public fun get_weight_tensor(layer: &SignedFixedLayer): &SignedFixedTensor {
+        &layer.weight_tensor
+    }
+
+    public fun get_bias_tensor(layer: &SignedFixedLayer): &SignedFixedTensor {
+        &layer.bias_tensor
+    }
+
+
  // DenseSignedFixed: in_dim/out_dim, (초기 weight=1, etc.), scale=2
     public fun DenseSignedFixed(
         graph: &mut SignedFixedGraph,

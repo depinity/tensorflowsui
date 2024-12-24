@@ -78,15 +78,15 @@ module tensorflowsui::Model_tests {
         // dense2
         x = Graph_tests::apply_dense_signed_fixed(
             &x,
-            &dense2.weight_tensor,
-            &dense2.bias_tensor
+            Graph_tests::get_weight_tensor(dense2),
+            Graph_tests::get_bias_tensor(dense2)
         );
 
         // output
         let out = Graph_tests::apply_dense_signed_fixed(
             &x,
-            &output_layer.weight_tensor,
-            &output_layer.bias_tensor
+            Graph_tests::get_weight_tensor(output_layer),
+            Graph_tests::get_bias_tensor(output_layer)
         );
 
         out
