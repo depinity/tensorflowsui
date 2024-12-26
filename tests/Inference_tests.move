@@ -54,22 +54,15 @@ module tensorflowsui::Inference_tests {
         // -----------------------------
         // 1) dense1 => shape=[3,6], bias=[6]
         // 예) w1_mag, w1_sign 에 임의로 부호 + 값 섞기
-        let w1_mag = vector[
-            150,234, 99,100, 200,350, // row0
-            408,156,123,987, 654,321, // row1
-            111,222,333,444, 12, 99   // row2
-        ];
-        let w1_sign= vector[
-            0,   1,   0,  0,   1,   0, 
-            1,   0,   0,  0,   1,   0,
-            0,   0,   0,  0,   1,   0
-        ];
+        let w1_mag = vector[]
+;
+        let w1_sign= vector[];
         // => 예: w1_mag[0]=150 + w1_sign[0]=0 => +1.50
         //        w1_mag[1]=234 + w1_sign[1]=1 => -2.34
         //        ... (소수점은 scale=2)
         
-        let b1_mag = vector[100,234,99, 50,12,77];
-        let b1_sign= vector[0,   1,   0,  0,  0, 0];
+        let b1_mag = vector[42, 2, 6, 47, 31, 48, 1, 1, 36, 23, 17, 16, 11, 41, 25, 63, 63, 24, 50, 21, 19, 33, 68, 12, 22, 4, 31, 12, 25, 60, 16, 1];
+        let b1_sign= vector[0, 1, 0, 0, 0, 0, 1, 0, 0, 1, 1, 0, 1, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 1, 0, 0];
         // => +1.00, -2.34, +0.99, +0.50, +0.12, +0.77
 
         Graph_tests::set_layer_weights_signed_fixed(
@@ -82,40 +75,16 @@ module tensorflowsui::Inference_tests {
         );
 
         // 2) dense2 => shape=[6,4], bias=[4]
-        let w2_mag = vector[
-            999,123, 456,78,
-            234,555, 777,999,
-            101,202, 303,404,
-            111,112, 113,114,
-            99,  88,  77, 66,
-            50,  40,  30, 20
-        ];
+        let w2_mag = vector[];
         // 전부 6*4=24개
-        let w2_sign= vector[
-            0,1,0,0,  1,0,1,0,
-            0,0,1,0,  0,0,1,0,
-            1,0,1,1,  0,0,0,0
-        ];
-        let b2_mag = vector[12,34,56,78];
-        let b2_sign= vector[0,1,1,0];
-        // => +0.12, -0.34, -0.56, +0.78
+        let w2_sign= vector[];
 
-        Graph_tests::set_layer_weights_signed_fixed(
-            &mut graph_sf,
-            b"dense2",
-            w2_mag, w2_sign,
-            b2_mag, b2_sign,
-            6,4,
-            scale
-        );
+        
 
-        // 3) output => shape=[4,2], bias=[2]
-        let w3_mag = vector[120,340, 560,780, 135,975, 111,999];
-        let w3_sign= vector[1,0, 0,1,  0,1, 1,0];
         // => scale=2 => -1.20, +3.40, +5.60, -7.80, ...
         
-        let b3_mag = vector[11,22];
-        let b3_sign= vector[0,1]; // +0.11, -0.22
+        let b3_mag = vector[20, 80, 27, 11, 22, 13, 12, 38, 98, 23];
+        let b3_sign= vector[1, 1, 1, 1, 0, 1, 1, 1, 0, 0]; // +0.11, -0.22
 
         Graph_tests::set_layer_weights_signed_fixed(
             &mut graph_sf,
@@ -130,7 +99,7 @@ module tensorflowsui::Inference_tests {
         // (D) 입력 텐서 생성
         //     shape=[1,3], magnitude=input_magnitude, sign=input_sign
         // -----------------------------
-        let inp_shape = vector[1,3];
+        let inp_shape = vector[1,196];
         let input_tensor = from_input(inp_shape, input_magnitude, input_sign, scale);
 
         debug::print(&std::string::utf8(b"[fixed] input tensor: "));

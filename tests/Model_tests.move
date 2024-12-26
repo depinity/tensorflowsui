@@ -53,14 +53,55 @@ module tensorflowsui::Model_tests {
 
 
 
+    // public fun create_model_signed_fixed(graph: &mut Graph_tests::SignedFixedGraph, scale: u64) {
+    //     Graph_tests::DenseSignedFixed(graph, 3, 6, b"dense1", scale);
+    //     Graph_tests::DenseSignedFixed(graph, 6, 4, b"dense2", scale);
+    //     Graph_tests::DenseSignedFixed(graph, 4, 2, b"output", scale);
+    // }
+
+
+    //     public fun run_inference_signed_fixed(
+    //     input_tensor: &SignedFixedTensor,
+    //     graph: &Graph_tests::SignedFixedGraph
+    // ): SignedFixedTensor {
+    //     let dense1 = Graph_tests::get_layer_signed_fixed(graph, b"dense1");
+    //     let dense2 = Graph_tests::get_layer_signed_fixed(graph, b"dense2");
+    //     let output_layer = Graph_tests::get_layer_signed_fixed(graph, b"output");
+
+    //     // dense1
+    //     let mut x = Graph_tests::apply_dense_signed_fixed(
+    //         input_tensor,
+    //         Graph_tests::get_weight_tensor(dense1), 
+    //         Graph_tests::get_bias_tensor(dense1)
+    //     );
+
+    //     // dense2
+    //     x = Graph_tests::apply_dense_signed_fixed(
+    //         &x,
+    //         Graph_tests::get_weight_tensor(dense2),
+    //         Graph_tests::get_bias_tensor(dense2)
+    //     );
+
+    //     // output
+    //     let out = Graph_tests::apply_dense_signed_fixed(
+    //         &x,
+    //         Graph_tests::get_weight_tensor(output_layer),
+    //         Graph_tests::get_bias_tensor(output_layer)
+    //     );
+
+    //     out
+    // }
+
+
     public fun create_model_signed_fixed(graph: &mut Graph_tests::SignedFixedGraph, scale: u64) {
-        Graph_tests::DenseSignedFixed(graph, 3, 6, b"dense1", scale);
-        Graph_tests::DenseSignedFixed(graph, 6, 4, b"dense2", scale);
-        Graph_tests::DenseSignedFixed(graph, 4, 2, b"output", scale);
+        Graph_tests::DenseSignedFixed(graph, 196, 128, b"dense1", scale);
+        Graph_tests::DenseSignedFixed(graph, 128, 64, b"dense2", scale);
+        Graph_tests::DenseSignedFixed(graph, 64, 10, b"output", scale);
     }
 
 
-        public fun run_inference_signed_fixed(
+
+    public fun run_inference_signed_fixed(
         input_tensor: &SignedFixedTensor,
         graph: &Graph_tests::SignedFixedGraph
     ): SignedFixedTensor {
@@ -69,24 +110,27 @@ module tensorflowsui::Model_tests {
         let output_layer = Graph_tests::get_layer_signed_fixed(graph, b"output");
 
         // dense1
-        let mut x = Graph_tests::apply_dense_signed_fixed(
+        let mut x = Graph_tests::apply_dense_signed_fixed_2(
             input_tensor,
             Graph_tests::get_weight_tensor(dense1), 
-            Graph_tests::get_bias_tensor(dense1)
+            Graph_tests::get_bias_tensor(dense1),
+            1
         );
 
         // dense2
-        x = Graph_tests::apply_dense_signed_fixed(
+        x = Graph_tests::apply_dense_signed_fixed_2(
             &x,
             Graph_tests::get_weight_tensor(dense2),
-            Graph_tests::get_bias_tensor(dense2)
+            Graph_tests::get_bias_tensor(dense2),
+            1
         );
 
         // output
-        let out = Graph_tests::apply_dense_signed_fixed(
+        let out = Graph_tests::apply_dense_signed_fixed_2(
             &x,
             Graph_tests::get_weight_tensor(output_layer),
-            Graph_tests::get_bias_tensor(output_layer)
+            Graph_tests::get_bias_tensor(output_layer),
+            0
         );
 
         out
