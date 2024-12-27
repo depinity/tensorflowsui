@@ -5,14 +5,14 @@ compiled_package_info:
     std: "0000000000000000000000000000000000000000000000000000000000000001"
     sui: "0000000000000000000000000000000000000000000000000000000000000002"
     tensorflowsui: "0000000000000000000000000000000000000000000000000000000000000000"
-  source_digest: 8531DEB34AB468A882D1F2607EBD2B1D9062CE52932C34364DEDDDA6B9D3C294
+  source_digest: E9EC167BF621D72D9E20A20EC9B1BA27AEC11F58D5BD41E7394D5D144D39145B
   build_flags:
-    dev_mode: false
-    test_mode: false
+    dev_mode: true
+    test_mode: true
     generate_docs: false
     install_dir: ~
     force_recompilation: false
-    lock_file: "./Move.lock"
+    lock_file: ~
     fetch_deps_only: false
     skip_fetch_latest_git_deps: false
     default_flavor: sui
