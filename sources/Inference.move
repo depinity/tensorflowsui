@@ -1,31 +1,20 @@
 
-#[test_only]
+
 module tensorflowsui::Inference {
     use tensorflowsui::Tensor::{ Tensor, SignedFixedTensor, from_input, debug_print_tensor,argmax};
     use tensorflowsui::Graph;
     use tensorflowsui::Model;
 
     use std::debug;
-    // use sui::test_utils::print
+    use sui::event;
 
-    // #[test]
-    // fun test_check(){
-    //     use sui::test_scenario;
+    public struct Result has copy, drop {
+        value : u64
+    }
+    
 
-    //         let chk_input :vector<u64> = vector[1,2,3];
-
-    //         run(chk_input);
-
-
-
-
-    // }
-
-        /// 1) 테스트 함수: 여기서 (magnitude, sign, scale) 을 직접 넘김
-    #[test]
     fun test_check2() {
-        // (예) +1.23, -4.56, +7.89  => magnitude=[123,456,789], sign=[0,1,0], scale=2
-       let scale = 2;
+         let scale = 2;
         
         // // label 0
         // debug::print(&std::string::utf8(b"true label: 0"));
@@ -69,17 +58,10 @@ module tensorflowsui::Inference {
         // let input_sign  = vector[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
 
 
-
-
-        
-
-
-
-
         run(input_mag, input_sign, scale);
     }
 
- public fun run(
+ entry public fun run(
         input_magnitude: vector<u64>,
         input_sign: vector<u64>,
         scale: u64
@@ -177,6 +159,8 @@ module tensorflowsui::Inference {
 
         debug::print(&std::string::utf8(b"y label: "));
         std::debug::print(&label);
+
+        event::emit(Result { value:label })
     }
 
 
