@@ -363,4 +363,100 @@ public fun divide(a: &SignedFixedTensor, b: &SignedFixedTensor): SignedFixedTens
 
         create_signed_fixed(copy a.shape, out_mag, out_sign, s)
     }
+
+
+    //
+    // ----------------------------------------------------
+    // 6) max_value, argmax
+    // ----------------------------------------------------
+    /// 주어진 (부호, 크기) vs (부호, 크기)에서
+    /// A > B 인지 여부를 bool로 반환
+    /// scale은 동일하다고 가정 -> 크기값(magnitude)만 비교하면 됨
+    fun is_a_greater_than_b(a_sign: u64, a_mag: u64,
+                            b_sign: u64, b_mag: u64): bool {
+        // 1) 부호 비교
+        if (a_sign == 0 && b_sign == 1) {
+            // A=양수, B=음수 => A > B
+            return true
+        } else if (a_sign == 1 && b_sign == 0) {
+            // A=음수, B=양수 => A < B
+            return false
+        };
+
+        // 2) 둘 다 양수인 경우
+        if (a_sign == 0 && b_sign == 0) {
+            // magnitude 큰 쪽이 더 큼
+            return (a_mag > b_mag)
+        };
+
+        // 3) 둘 다 음수인 경우
+        // -2 vs -3일 때, -2가 더 크다 => 2 < 3
+        // => magnitude가 작은 쪽이 더 큼
+        // A가 더 크려면 => a_mag < b_mag
+        return (a_mag < b_mag)
+    }
+
+    /// tensor 내 모든 요소 중 최댓값을 찾아 반환
+    /// (반환 shape=[1], scale은 동일 유지)
+    public fun max_value(t: &SignedFixedTensor): SignedFixedTensor {
+        let n = vector::length(&t.magnitude);
+        assert!(n > 0, 2001);
+
+        // 초기값 = 첫 원소
+        let mut max_sgn = *vector::borrow(&t.sign, 0);
+        let mut max_mag = *vector::borrow(&t.magnitude, 0);
+
+        let mut i = 1;
+        while (i < n) {
+            let sgn_i = *vector::borrow(&t.sign, i);
+            let mag_i = *vector::borrow(&t.magnitude, i);
+
+            if (is_a_greater_than_b(sgn_i, mag_i, max_sgn, max_mag)) {
+                max_sgn = sgn_i;
+                max_mag = mag_i;
+            };
+
+            i = i + 1;
+        };
+
+        // shape=[1]
+        let mut out_shape = vector::empty<u64>();
+        vector::push_back(&mut out_shape, 1);
+
+        let mut out_mag = vector::empty<u64>();
+        let mut out_sign= vector::empty<u64>();
+
+        vector::push_back(&mut out_mag, max_mag);
+        vector::push_back(&mut out_sign, max_sgn);
+
+        create_signed_fixed(out_shape, out_mag, out_sign, t.scale)
+    }
+
+    /// tensor 내 최댓값 인덱스(argmax)
+    /// 여러 차원이 있을 경우, 일단 1D (flatten) 인덱스로 간주
+    public fun argmax(t: &SignedFixedTensor): u64 {
+        let n = vector::length(&t.magnitude);
+        assert!(n > 0, 2101);
+
+        let mut max_index = 0;
+        let mut max_sgn   = *vector::borrow(&t.sign, 0);
+        let mut max_mag   = *vector::borrow(&t.magnitude, 0);
+
+        let mut i = 1;
+        while (i < n) {
+            let sgn_i = *vector::borrow(&t.sign, i);
+            let mag_i = *vector::borrow(&t.magnitude, i);
+
+            if (is_a_greater_than_b(sgn_i, mag_i, max_sgn, max_mag)) {
+                max_sgn   = sgn_i;
+                max_mag   = mag_i;
+                max_index = i;
+            };
+
+            i = i + 1;
+        };
+        max_index
+    }
+
+
 }
