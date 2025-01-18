@@ -50,6 +50,14 @@ module tensorflowsui::graph_ptb {
         &layer.bias_tensor
     }
 
+    public fun get_layer_in_dim(layer: &SignedFixedLayer): u64 {
+        layer.in_dim
+    }
+
+    public fun get_layer_out_dim(layer: &SignedFixedLayer): u64 {
+        layer.out_dim
+    }
+
 
  // DenseSignedFixed: in_dim/out_dim, (초기 weight=1, etc.), scale=2
     public fun DenseSignedFixed(
@@ -379,7 +387,7 @@ public fun apply_dense_signed_fixed_2(
 
 
 
-    fun signed_add_element(
+    public fun signed_add_element(
         s1: u64, m1: u64,
         s2: u64, m2: u64
     ): (u64, u64) {

@@ -1,9 +1,7 @@
-
-
 module tensorflowsui::inference_ptb {
     use tensorflowsui::tensor::{ Tensor, SignedFixedTensor, from_input, debug_print_tensor,argmax};
     use tensorflowsui::graph_ptb as graph;
-    use tensorflowsui::model_ptb;
+    use tensorflowsui::model_ptb as model;
 
     use std::debug;
     use sui::event;
@@ -64,21 +62,47 @@ module tensorflowsui::inference_ptb {
     // Initialize the network
     public entry fun initialize(ctx: &mut TxContext) {
         let mut graph = graph::create_signed_graph(ctx);
-        model_ptb::create_model_signed_fixed(&mut graph, 2); // scale = 2
+        model::create_model_signed_fixed(&mut graph, 2); 
+        model::ptb_graph_1_init(&graph, ctx);
+        // scale = 2
         graph::share_graph(graph);
+
     }
 
     // Test function with sample input
-    public entry fun test_inference(graph: &graph::SignedFixedGraph) {
+    public entry fun test_inference(graph: &graph::SignedFixedGraph, pd1: &mut model::PartialDense1) {
         let scale = 2;
         
         debug::print(&std::string::utf8(b"true label: 8"));
         let input_mag = vector[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 44, 30, 37, 0, 0, 0, 50, 3, 89, 0, 0, 0, 0, 0, 99, 5, 0, 0, 0, 0, 63, 5, 46, 0, 0, 0, 0, 97, 85, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
         let input_sign = vector[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+        
+        model::ptb_graph_1_compute_chunk(
+            graph,
+            pd1,
+            input_mag,
+            input_sign,
+            0,
+            8
+        );
 
-        let (mag1, sign1, scale1) = model_ptb::ptb_graph_1(graph, input_mag, input_sign, scale);
-        let (mag2, sign2, scale2) = model_ptb::ptb_graph_2(graph, mag1, sign1, scale1);
-        let label = model_ptb::ptb_graph_3(graph, mag2, sign2, scale2);
+        model::ptb_graph_1_compute_chunk(
+            graph,
+            pd1,
+            input_mag,
+            input_sign,
+            8,
+            16
+        );
+
+        // 2) finalize => (mag1, sign1, scale1)
+        let (mag1, sign1, scale1) = model::ptb_graph_1_finalize(
+            graph,
+            pd1
+        );
+        
+        let (mag2, sign2, scale2) = model::ptb_graph_2(graph, mag1, sign1, scale1);
+        let label = model::ptb_graph_3(graph, mag2, sign2, scale2);
 
         debug::print(&std::string::utf8(b"predicted label: "));
         debug::print(&label);

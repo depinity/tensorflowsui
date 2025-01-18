@@ -3,6 +3,184 @@ module tensorflowsui::model_ptb {
     use tensorflowsui::graph_ptb as graph;
     use tensorflowsui::tensor::{from_input, SignedFixedTensor, get_magnitude, get_sign, argmax};
     use sui::event;
+    use tensorflowsui::tensor::scale_up;
+
+    use sui::object::{Self,UID};
+
+    public fun share_partial(partial: PartialDense1) {
+        transfer::share_object(partial);
+    }
+
+    public struct PartialDense has  copy,store, drop {
+        accum_mag: vector<u64>,   // length = out_dim
+        accum_sign: vector<u64>,  // length = out_dim
+        out_dim: u64,
+        in_dim: u64,
+        scale: u64,
+    }
+
+    public struct PartialDense1 has key, store {
+        id: UID,
+        partial: PartialDense,
+    }
+
+entry public fun ptb_graph_1_init(
+        graph_obj: &graph::SignedFixedGraph,
+        ctx: &mut TxContext
+    ) {
+        // dense1 레이어
+        let layer = graph::get_layer_signed_fixed(graph_obj, b"dense1");
+        let in_dim = graph::get_layer_in_dim(layer);   // ex) 49
+        let out_dim= graph::get_layer_out_dim(layer);  // ex) 16
+        let s = 2; // 예시 scale=2
+
+        // 0 초기화
+        let mut mag = vector::empty<u64>();
+        let mut sgn = vector::empty<u64>();
+        let mut i = 0;
+        while (i < out_dim) {
+            vector::push_back(&mut mag, 0);
+            vector::push_back(&mut sgn, 0);
+            i = i + 1;
+        };
+
+        let partials = PartialDense {
+            accum_mag: mag,
+            accum_sign: sgn,
+            out_dim,
+            in_dim,
+            scale: s,
+        };
+
+        let pd1 = PartialDense1 {
+            id: object::new(ctx),
+            partial: partials
+        };
+
+        transfer::share_object(pd1);
+    }
+
+// ------------------------------------------------------------------------------
+    // 4) ptb_graph_1_compute_chunk
+    // ------------------------------------------------------------------------------
+    /// - output 노드 중 (start_j..end_j) 범위만 곱셈·덧셈 누적
+    /// - partial.accum_mag/accum_sign를 수정
+    entry public fun ptb_graph_1_compute_chunk(
+        graph_obj: &graph::SignedFixedGraph,
+        pd1: &mut PartialDense1,
+        input_magnitude: vector<u64>,
+        input_sign: vector<u64>,
+        start_j: u64,
+        end_j: u64
+    ) {
+        let layer = graph::get_layer_signed_fixed(graph_obj, b"dense1");
+        let w = graph::get_weight_tensor(layer);  // shape=[in_dim, out_dim], scale(?)
+
+        let out_dim = pd1.partial.out_dim;
+        let in_dim  = pd1.partial.in_dim;
+        let s       = pd1.partial.scale;
+
+        assert!(end_j <= out_dim, 9999);
+
+        let pmag = &mut pd1.partial.accum_mag;
+        let psgn = &mut pd1.partial.accum_sign;
+
+        let mut j = start_j;
+        while (j < end_j) {
+            let old_s = *vector::borrow(psgn, j);
+            let old_m = *vector::borrow(pmag, j);
+
+            let mut new_sgn = old_s;
+            let mut new_mag = old_m;
+
+            let mut i = 0;
+            while (i < in_dim) {
+                let in_s = *vector::borrow(&input_sign, i);
+                let in_m = *vector::borrow(&input_magnitude, i);
+
+                let w_index = i*out_dim + j;
+                let w_s = *vector::borrow(&get_sign(w), w_index);
+                let w_m = *vector::borrow(&get_magnitude(w), w_index);
+
+                // 곱 => scale=2*s (가정)
+                let mul_s = if (in_s == w_s) { 0 } else { 1 };
+                let mul_m = in_m * w_m;
+
+                let (res_s, res_m) = graph::signed_add_element(new_sgn, new_mag, mul_s, mul_m);
+                new_sgn = res_s;
+                new_mag = res_m;
+
+                i = i + 1;
+            };
+
+            // update
+            *vector::borrow_mut(psgn, j) = new_sgn;
+            *vector::borrow_mut(pmag, j) = new_mag;
+
+            j = j + 1;
+        };
+    }
+
+    // ------------------------------------------------------------------------------
+    // 5) ptb_graph_1_finalize
+    // ------------------------------------------------------------------------------
+    /// - 최종적으로 bias + ReLU + scale-down 적용
+    /// - (mag, sign, scale) 형태로 반환 (ptb_graph_2와 동일 시그니처)
+    entry public fun ptb_graph_1_finalize(
+        graph_obj: &graph::SignedFixedGraph,
+        pd1: &PartialDense1
+    ): (vector<u64>, vector<u64>, u64) {
+        // dense1
+        let layer = graph::get_layer_signed_fixed(graph_obj, b"dense1");
+        let bias = graph::get_bias_tensor(layer);
+
+        let out_dim = pd1.partial.out_dim;
+        let s = pd1.partial.scale;
+
+        let accum_mag = pd1.partial.accum_mag;  // by-value
+        let accum_sgn = pd1.partial.accum_sign; // by-value
+
+        let mut final_mag = vector::empty<u64>();
+        let mut final_sgn = vector::empty<u64>();
+
+        let mut j = 0;
+        while (j < out_dim) {
+            let acc_s = *vector::borrow(&accum_sgn, j);
+            let acc_m = *vector::borrow(&accum_mag,  j);
+
+            // scale=s -> 2s
+            let factor = scale_up(1, s);
+
+            let b_s = *vector::borrow(&get_sign(bias), j);
+            let b_m = *vector::borrow(&get_magnitude(bias), j);
+            let b_m_2s = b_m * factor;
+
+            let (sum_s, sum_m) = graph::signed_add_element(acc_s, acc_m, b_s, b_m_2s);
+
+            // ReLU
+            let mut relu_s = sum_s;
+            let mut relu_m = sum_m;
+            if (relu_s == 1) {
+                relu_s = 0;
+                relu_m = 0;
+            };
+
+            // scale-down (2s -> s)
+            let divisor = scale_up(1, s);
+            let out_m = relu_m / divisor;
+            let out_s = relu_s;
+
+            vector::push_back(&mut final_sgn, out_s);
+            vector::push_back(&mut final_mag, out_m);
+
+            j = j + 1;
+        };
+
+        // 반환
+        (final_mag, final_sgn, s)
+    }
+
+
 
     public struct Result has copy, drop {
         value : u64
@@ -62,27 +240,28 @@ module tensorflowsui::model_ptb {
     }
 
 
-    entry public fun ptb_graph_1(graph: &graph::SignedFixedGraph,
-        input_magnitude: vector<u64>,input_sign: vector<u64>,scale: u64,
-        ) : (vector<u64>, vector<u64>, u64){
+    // entry public fun ptb_graph_1(graph: &graph::SignedFixedGraph,
+    //     input_magnitude: vector<u64>,input_sign: vector<u64>,scale: u64,
+    //     ) : (vector<u64>, vector<u64>, u64){
 
-        let inp_shape = vector[1,49];
-        let input_tensor = from_input(inp_shape, input_magnitude, input_sign, scale);
+    //     let inp_shape = vector[1,49];
+    //     let input_tensor = from_input(inp_shape, input_magnitude, input_sign, scale);
 
-        let dense1 = graph::get_layer_signed_fixed(graph, b"dense1");
+    //     let dense1 = graph::get_layer_signed_fixed(graph, b"dense1");
 
-        let result = graph::apply_dense_signed_fixed_2(
-                        &input_tensor,
-                        graph::get_weight_tensor(dense1), 
-                        graph::get_bias_tensor(dense1),
-                        1
-                    );
+    //     let result = graph::apply_dense_signed_fixed_2(
+    //                     &input_tensor,
+    //                     graph::get_weight_tensor(dense1), 
+    //                     graph::get_bias_tensor(dense1),
+    //                     1
+    //                 );
 
-        let results_mag = get_magnitude(&result);
-        let results_sign = get_sign(&result);
-        (results_mag, results_sign, scale)
+    //     let results_mag = get_magnitude(&result);
+    //     let results_sign = get_sign(&result);
+    //     (results_mag, results_sign, scale)
 
-    }
+    // 
+
 
 
     entry public fun ptb_graph_2(graph: &graph::SignedFixedGraph,
