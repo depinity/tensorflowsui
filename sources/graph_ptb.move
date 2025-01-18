@@ -1,4 +1,8 @@
-module tensorflowsui::Graph {
+module tensorflowsui::graph_ptb {
+
+    use sui::object::{Self,UID};
+    use sui::transfer;
+    use sui::tx_context::{Self,TxContext};
 
 
     use std::debug;
@@ -7,7 +11,7 @@ module tensorflowsui::Graph {
     const RELU : u64= 1;
     const SOFTMAX : u64 = 2;
 
-    use tensorflowsui::Tensor::{
+    use tensorflowsui::tensor::{
         SignedFixedTensor, get_scale,get_magnitude,get_shape,get_sign,
         create_signed_fixed,
         scale_up,
@@ -15,7 +19,7 @@ module tensorflowsui::Graph {
     };
 
 
-    public struct SignedFixedLayer has copy, drop {
+    public struct SignedFixedLayer has copy, drop, store {
         name: vector<u8>,
         layer_type: vector<u8>,
         in_dim: u64,
@@ -24,13 +28,17 @@ module tensorflowsui::Graph {
         bias_tensor: SignedFixedTensor,    // shape=[out_dim], same scale
     }
 
-    public struct SignedFixedGraph has drop {
+    public struct SignedFixedGraph has key, store {
+        id : UID,
         layers: vector<SignedFixedLayer>,
     }
 
+    public fun create_signed_graph(ctx: &mut TxContext): SignedFixedGraph {
+        SignedFixedGraph { id: object::new(ctx), layers: vector::empty<SignedFixedLayer>() }
+    }
 
-    public fun create_signed_graph(): SignedFixedGraph {
-        SignedFixedGraph { layers: vector::empty<SignedFixedLayer>() }
+    public fun share_graph(graph: SignedFixedGraph) {
+        transfer::share_object(graph);
     }
 
     // Getter 함수들 (field를 반환)

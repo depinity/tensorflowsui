@@ -1,9 +1,9 @@
 
 
-module tensorflowsui::Inference {
-    use tensorflowsui::Tensor::{ Tensor, SignedFixedTensor, from_input, debug_print_tensor,argmax};
-    use tensorflowsui::Graph;
-    use tensorflowsui::Model;
+module tensorflowsui::inference {
+    use tensorflowsui::tensor::{ Tensor, SignedFixedTensor, from_input, debug_print_tensor,argmax};
+    use tensorflowsui::graph;
+    use tensorflowsui::model;
 
     use std::debug;
     use sui::event;
@@ -69,13 +69,13 @@ module tensorflowsui::Inference {
         // -----------------------------
         // (A) 고정소수점 그래프 생성
         // -----------------------------
-        let mut graph_sf = Graph::create_signed_graph();
+        let mut graph_sf = graph::create_signed_graph();
 
         // -----------------------------
         // (B) 모델 생성 (dense1, dense2, output)
         //     shape: [3,6], [6,4], [4,2]
         // -----------------------------
-        Model::create_model_signed_fixed(&mut graph_sf, scale);
+        model::create_model_signed_fixed(&mut graph_sf, scale);
 
         // -----------------------------
         // (D) 입력 텐서 생성
@@ -90,7 +90,7 @@ module tensorflowsui::Inference {
         // -----------------------------
         // (E) 추론
         // -----------------------------
-        let result = Model::run_inference_signed_fixed(&input_tensor, &graph_sf);
+        let result = model::run_inference_signed_fixed(&input_tensor, &graph_sf);
         // debug_print_tensor(&result);
         // -----------------------------
         // (F) 결과 확인

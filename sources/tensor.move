@@ -1,4 +1,4 @@
-module tensorflowsui::Tensor {
+module tensorflowsui::tensor {
 
     use std::string;
     public struct Tensor has drop {
@@ -20,7 +20,7 @@ module tensorflowsui::Tensor {
         Tensor { shape, data }
     }
 
-    public struct SignedFixedTensor has copy, drop {
+    public struct SignedFixedTensor has copy, drop, store {
 
         shape : vector<u64>,
         magnitude : vector<u64>,
