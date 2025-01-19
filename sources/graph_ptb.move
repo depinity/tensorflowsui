@@ -40,7 +40,9 @@ module tensorflowsui::graph_ptb {
     public fun share_graph(graph: SignedFixedGraph) {
         transfer::share_object(graph);
     }
-
+    public fun get_layer_at(graph: &SignedFixedGraph, idx: u64): &SignedFixedLayer {
+        vector::borrow(&graph.layers, idx)
+    }
     // Getter 함수들 (field를 반환)
     public fun get_weight_tensor(layer: &SignedFixedLayer): &SignedFixedTensor {
         &layer.weight_tensor
@@ -58,6 +60,9 @@ module tensorflowsui::graph_ptb {
         layer.out_dim
     }
 
+    public fun get_layer_name(layer: &SignedFixedLayer): vector<u8> {
+        layer.name
+    }
 
  // DenseSignedFixed: in_dim/out_dim, (초기 weight=1, etc.), scale=2
     public fun DenseSignedFixed(
@@ -642,6 +647,11 @@ public fun apply_dense_signed_fixed_2(
             i = i + 1;
         };
         result
+    }
+
+
+    public fun get_layer_count(graph: &SignedFixedGraph): u64 {
+        vector::length(&graph.layers)
     }
 
 }

@@ -63,32 +63,37 @@ module tensorflowsui::inference_ptb {
     public entry fun initialize(ctx: &mut TxContext) {
         let mut graph = graph::create_signed_graph(ctx);
         model::create_model_signed_fixed(&mut graph, 2); 
-        model::ptb_graph_1_init(&graph, ctx);
+        let mut partials = model::create_partial_denses(ctx);
+        model::add_partials_for_all_but_last(&graph, &mut partials);
+
         // scale = 2
         graph::share_graph(graph);
+        model::share_partial(partials);
 
     }
 
     // Test function with sample input
-    public entry fun test_inference(graph: &graph::SignedFixedGraph, pd1: &mut model::PartialDense1) {
+    public entry fun test_inference(graph: &graph::SignedFixedGraph, pd1: &mut model::PartialDenses) {
         let scale = 2;
         
         debug::print(&std::string::utf8(b"true label: 8"));
         let input_mag = vector[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 44, 30, 37, 0, 0, 0, 50, 3, 89, 0, 0, 0, 0, 0, 99, 5, 0, 0, 0, 0, 63, 5, 46, 0, 0, 0, 0, 97, 85, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
         let input_sign = vector[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
         
-        model::ptb_graph_1_compute_chunk(
+        model::ptb_graph_compute_chunk(
             graph,
             pd1,
+            b"dense1",
             input_mag,
             input_sign,
             0,
             8
         );
 
-        model::ptb_graph_1_compute_chunk(
+        model::ptb_graph_compute_chunk(
             graph,
             pd1,
+            b"dense1",
             input_mag,
             input_sign,
             8,
@@ -96,9 +101,10 @@ module tensorflowsui::inference_ptb {
         );
 
         // 2) finalize => (mag1, sign1, scale1)
-        let (mag1, sign1, scale1) = model::ptb_graph_1_finalize(
+        let (mag1, sign1, scale1) = model::ptb_graph_finalize(
             graph,
-            pd1
+            pd1,
+            b"dense1"
         );
         
         let (mag2, sign2, scale2) = model::ptb_graph_2(graph, mag1, sign1, scale1);
