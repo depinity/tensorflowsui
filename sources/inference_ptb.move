@@ -87,7 +87,7 @@ module tensorflowsui::inference_ptb {
             input_mag,
             input_sign,
             0,
-            8
+            7
         );
 
         model::ptb_graph_compute_chunk(
@@ -97,7 +97,7 @@ module tensorflowsui::inference_ptb {
             input_mag,
             input_sign,
             8,
-            16
+            15
         );
 
         // 2) finalize => (mag1, sign1, scale1)
