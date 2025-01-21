@@ -274,7 +274,7 @@ module tensorflowsui::graph_ptb {
         create_signed_fixed(out_shape, out_mag, out_sign, s)
     }
 
-fun apply_relu_element(sign: u64, mag: u64): (u64, u64) {
+public fun apply_relu_element(sign: u64, mag: u64): (u64, u64) {
     if (sign == 1) {
         // 음수인 경우 => 0으로 clamp
         (0, 0)

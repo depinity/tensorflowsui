@@ -1,9 +1,10 @@
 module tensorflowsui::model_ptb {
     use sui::tx_context::TxContext;
     use tensorflowsui::graph_ptb as graph;
-    use tensorflowsui::tensor::{from_input, SignedFixedTensor, get_magnitude, get_sign, argmax};
+    use tensorflowsui::tensor::{from_input, SignedFixedTensor,create_signed_fixed, get_magnitude, get_sign,get_shape, argmax};
     use sui::event;
     use tensorflowsui::tensor::scale_up;
+    
 
     use sui::object::{Self,UID};
 
@@ -94,43 +95,191 @@ module tensorflowsui::model_ptb {
     }
 
 
-    
 
-// entry public fun ptb_graph_1_init(
-//         graph_obj: &graph::SignedFixedGraph,
-//         ctx: &mut TxContext
-//     ) {
-//         // dense1 레이어
-//         let layer = graph::get_layer_signed_fixed(graph_obj, b"dense1");
-//         let in_dim = graph::get_layer_in_dim(layer);   // ex) 49
-//         let out_dim= graph::get_layer_out_dim(layer);  // ex) 16
-//         let s = 2; // 예시 scale=2
 
-//         // 0 초기화
-//         let mut mag = vector::empty<u64>();
-//         let mut sgn = vector::empty<u64>();
-//         let mut i = 0;
-//         while (i < out_dim) {
-//             vector::push_back(&mut mag, 0);
-//             vector::push_back(&mut sgn, 0);
-//             i = i + 1;
-//         };
+public fun ptb_graph_2_compute_chunk(
+    graph_obj: &graph::SignedFixedGraph,
+    p_denses: &mut PartialDenses,
+    partial_name: vector<u8>,           // ex: b"dense2"
+    input_tensor: &SignedFixedTensor,
+    activation_type: u64,               // 0=NONE, 1=RELU, 2=SOFTMAX
+    start_j: u64,
+    end_j: u64
+) {
+    // 1) partial_denses에서 partial_name을 가진 partial 찾기
+    let partial_ref = get_partial_by_name_mut(p_denses, partial_name);
 
-//         let partials = PartialDense {
-//             accum_mag: mag,
-//             accum_sign: sgn,
-//             out_dim,
-//             in_dim,
-//             scale: s,
-//         };
+    // 2) 레이어 가져오기
+    let layer = graph::get_layer_signed_fixed(graph_obj, partial_name);
+    let w = graph::get_weight_tensor(layer);
+    let b = graph::get_bias_tensor(layer);
 
-//         let pd1 = PartialDense1 {
-//             id: object::new(ctx),
-//             partial: partials
-//         };
+    // 3) partial에서 out_dim, scale 가져오기
+    let out_dim = partial_ref.out_dim;  
+    let s = partial_ref.scale;          
 
-//         transfer::share_object(pd1);
-//     }
+    // input_tensor에서 batch, in_dim 추출
+    let batch = *vector::borrow(&get_shape(input_tensor), 0);
+    let in_dim = *vector::borrow(&get_shape(input_tensor), 1);
+
+    // partial_ref.in_dim, partial_ref.out_dim 과 in_dim, out_dim이 일치하는지 검사(선택)
+    // ...
+
+    // accum_mag, accum_sign (크기 = batch * out_dim)
+    let pmag = &mut partial_ref.accum_mag;
+    let psgn = &mut partial_ref.accum_sign;
+
+    assert!(end_j <= out_dim, 9999);
+
+    // 배치 루프
+    let mut b_idx = 0;
+    while (b_idx < batch) {
+        // 출력 노드 루프 (start_j..end_j)
+        let mut j_idx = start_j;
+        while (j_idx < end_j) {
+            // partial 기존값
+            let index = b_idx*out_dim + j_idx;
+
+            let old_s = *vector::borrow(psgn, index);
+            let old_m = *vector::borrow(pmag, index);
+
+            // -------------------------
+            // 1) (입력 x weight) => scale=2s
+            // -------------------------
+            let mut acc_sgn = old_s;
+            let mut acc_mag = old_m;
+
+            let mut i_idx = 0;
+            while (i_idx < in_dim) {
+                let in_index = b_idx*in_dim + i_idx;
+                let w_index  = i_idx*out_dim + j_idx;
+
+                // input
+                let in_s = *vector::borrow(&get_sign(input_tensor), in_index);
+                let in_m = *vector::borrow(&get_magnitude(input_tensor), in_index);
+
+                // weight
+                let w_s = *vector::borrow(&get_sign(w), w_index);
+                let w_m = *vector::borrow(&get_magnitude(w), w_index);
+
+                // 곱 => scale=2s
+                let mul_s = if (in_s == w_s) { 0 } else {1};
+                let mul_m = in_m * w_m;
+
+                let (acc2_s, acc2_m) = graph::signed_add_element(acc_sgn, acc_mag, mul_s, mul_m);
+                acc_sgn = acc2_s;
+                acc_mag = acc2_m;
+
+                i_idx = i_idx + 1;
+            };
+
+            // -------------------------
+            // 2) bias => s->2s
+            // -------------------------
+            let factor = scale_up(1, s);
+            let b_s = *vector::borrow(&get_sign(b), j_idx);
+            let b_m = *vector::borrow(&get_magnitude(b), j_idx);
+            let b_m_2s = b_m * factor;
+
+            let (acc3_s, acc3_m) = graph::signed_add_element(acc_sgn, acc_mag, b_s, b_m_2s);
+
+            // -------------------------
+            // 3) activation_type => RELU or NONE
+            // -------------------------
+            let (mut final_s, mut final_m) = if (activation_type == 1 /* RELU */) {
+                graph::apply_relu_element(acc3_s, acc3_m)
+            } else {
+                (acc3_s, acc3_m)
+            };
+
+            // (SOFTMAX는 row단위 계산 필요 -> 여기선 생략 or if ==2 => abort)
+
+            // -------------------------
+            // 4) scale-down => 2s->s
+            // -------------------------
+            let divisor = scale_up(1, s);
+            let rounded_m = final_m / divisor;
+
+            // -------------------------
+            // partial 배열에 최종값(s)을 저장
+            // -------------------------
+            *vector::borrow_mut(psgn, index) = final_s;
+            *vector::borrow_mut(pmag, index) = rounded_m;
+
+            j_idx = j_idx + 1;
+        };
+        b_idx = b_idx + 1;
+    };
+}
+
+
+entry public fun ptb_chunk(
+    graph_obj: &graph::SignedFixedGraph,
+    pd: &mut PartialDenses,
+    partial_name: vector<u8>,
+    input_magnitude: vector<u64>,input_sign: vector<u64>,
+    activation_type: u64,
+    start_j: u64,
+    end_j: u64
+) {
+
+    let partial_ref = get_partial_by_name_mut(pd, partial_name);
+    let out_dim = partial_ref.out_dim;  
+    let s = partial_ref.scale; 
+    let inp_shape = vector[1,out_dim];
+    let input_tensor = from_input(inp_shape, input_magnitude, input_sign, s);
+             
+    ptb_graph_2_compute_chunk(graph_obj, pd, partial_name, &input_tensor, activation_type, start_j, end_j);
+
+}
+
+entry public fun ptb_finalize(
+            pd: &mut PartialDenses,
+    partial_name: vector<u8>
+): (vector<u64>, vector<u64>, u64) {
+    // 1) 해당 partial 가져오기 (읽기 전용으로 충분하므로 &PartialDense)
+      let partial_ref = get_partial_by_name_mut(pd, partial_name);
+
+
+    let out_dim = partial_ref.out_dim;
+    let s = partial_ref.scale;       // e.g. 2
+    let accum_mag = partial_ref.accum_mag; 
+    let accum_sgn = partial_ref.accum_sign;
+
+    // 2) shape 계산 => [batch, out_dim]
+    let total_len = vector::length(&accum_mag);
+    // batch = total_len / out_dim (integer division)
+    let batch = total_len / out_dim;
+
+    // 3) make shape vector
+    let mut out_shape = vector::empty<u64>();
+    vector::push_back(&mut out_shape, batch);
+    vector::push_back(&mut out_shape, out_dim);
+
+    // 4) create_signed_fixed => scale=s
+    let result_tensor = create_signed_fixed(
+        out_shape,
+        accum_mag,
+        accum_sgn,
+        s
+    );
+
+    // 5) 반환 => SignedFixedTensor
+
+        let results_mag = get_magnitude(&result_tensor);
+        let results_sign = get_sign(&result_tensor);
+        (results_mag, results_sign, s)
+
+
+
+}
+
+
+
+
+
+
+
 
     entry public fun ptb_graph_compute_chunk(
         graph_obj: &graph::SignedFixedGraph,
@@ -227,20 +376,24 @@ module tensorflowsui::model_ptb {
 
             let (sum_s, sum_m) = graph::signed_add_element(acc_s, acc_m, b_s, b_m_2s);
 
+
+            let (mut final_s, mut final_m) =graph::apply_relu_element(sum_s, sum_m);
+
+
             // ReLU
-            let mut relu_s = sum_s;
-            let mut relu_m = sum_m;
-            if (relu_s == 1) {
-                relu_s = 0;
-                relu_m = 0;
-            };
+            // let mut relu_s = sum_s;
+            // let mut relu_m = sum_m;
+            // if (relu_s == 1) {
+            //     relu_s = 0;
+            //     relu_m = 0;
+            // };
 
             // scale-down (2s -> s)
             let divisor = scale_up(1, s);
-            let out_m = relu_m / divisor;
-            let out_s = relu_s;
+            let out_m = final_m / divisor;
 
-            vector::push_back(&mut final_sgn, out_s);
+
+            vector::push_back(&mut final_sgn, final_s);
             vector::push_back(&mut final_mag, out_m);
 
             j = j + 1;
