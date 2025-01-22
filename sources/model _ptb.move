@@ -140,7 +140,7 @@ public fun ptb_graph_2_compute_chunk(
     while (b_idx < batch) {
         // 출력 노드 루프 (start_j..end_j)
         let mut j_idx = start_j;
-        while (j_idx < end_j) {
+        while (j_idx <= end_j) {
             // partial 기존값
             let index = b_idx*out_dim + j_idx;
 
@@ -414,7 +414,7 @@ entry public fun ptb_finalize(
     
     public fun create_model_signed_fixed(graph: &mut graph::SignedFixedGraph, scale: u64) {
 
-
+        
         graph::DenseSignedFixed(graph, 49, 16, b"dense1", scale);
         graph::DenseSignedFixed(graph, 16, 8, b"dense2", scale);
         graph::DenseSignedFixed(graph, 8, 10, b"output", scale);
