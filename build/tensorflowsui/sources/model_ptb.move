@@ -464,6 +464,27 @@ entry public fun ptb_finalize(
     
     }
 
+    entry public fun ptb_graph_1(graph: &graph::SignedFixedGraph,
+        input_magnitude: vector<u64>,input_sign: vector<u64>,scale: u64,
+        ) : (vector<u64>, vector<u64>, u64){
+
+        let inp_shape = vector[1,49];
+        let input_tensor = from_input(inp_shape, input_magnitude, input_sign, scale);
+
+        let dense1 = graph::get_layer_signed_fixed(graph, b"dense1");
+
+        let result = graph::apply_dense_signed_fixed_2(
+                        &input_tensor,
+                        graph::get_weight_tensor(dense1), 
+                        graph::get_bias_tensor(dense1),
+                        1
+                    );
+
+        let results_mag = get_magnitude(&result);
+        let results_sign = get_sign(&result);
+        (results_mag, results_sign, scale)
+
+    }
 
 
     entry public fun ptb_graph_2(graph: &graph::SignedFixedGraph,

@@ -1,10 +1,13 @@
 module tensorflowsui::model_ptb {
     use sui::tx_context::TxContext;
     use tensorflowsui::graph_ptb as graph;
-    use tensorflowsui::tensor::{from_input, SignedFixedTensor,create_signed_fixed, get_magnitude, get_sign,get_shape, argmax};
+    use tensorflowsui::tensor::{from_input, SignedFixedTensor,create_signed_fixed, get_scale, get_magnitude, get_sign,get_shape, argmax};
     use sui::event;
     use tensorflowsui::tensor::scale_up;
-    
+
+    const NONE : u64= 0;
+    const RELU : u64= 1;
+    const SOFTMAX : u64 = 2;
 
     use sui::object::{Self,UID};
 
@@ -100,9 +103,9 @@ module tensorflowsui::model_ptb {
 public fun ptb_graph_2_compute_chunk(
     graph_obj: &graph::SignedFixedGraph,
     p_denses: &mut PartialDenses,
-    partial_name: vector<u8>,           // ex: b"dense2"
+    partial_name: vector<u8>,           
     input_tensor: &SignedFixedTensor,
-    activation_type: u64,               // 0=NONE, 1=RELU, 2=SOFTMAX
+    activation_type: u64,               
     start_j: u64,
     end_j: u64
 ) {
@@ -116,7 +119,8 @@ public fun ptb_graph_2_compute_chunk(
 
     // 3) partial에서 out_dim, scale 가져오기
     let out_dim = partial_ref.out_dim;  
-    let s = partial_ref.scale;          
+    // let s = partial_ref.scale;
+    let s = get_scale(input_tensor);          
 
     // input_tensor에서 batch, in_dim 추출
     let batch = *vector::borrow(&get_shape(input_tensor), 0);
@@ -140,14 +144,14 @@ public fun ptb_graph_2_compute_chunk(
             // partial 기존값
             let index = b_idx*out_dim + j_idx;
 
-            let old_s = *vector::borrow(psgn, index);
-            let old_m = *vector::borrow(pmag, index);
+            // let old_s = *vector::borrow(psgn, index);
+            // let old_m = *vector::borrow(pmag, index);
 
             // -------------------------
             // 1) (입력 x weight) => scale=2s
             // -------------------------
-            let mut acc_sgn = old_s;
-            let mut acc_mag = old_m;
+            let mut acc_sgn = 0;
+            let mut acc_mag = 0;
 
             let mut i_idx = 0;
             while (i_idx < in_dim) {
@@ -186,7 +190,7 @@ public fun ptb_graph_2_compute_chunk(
             // -------------------------
             // 3) activation_type => RELU or NONE
             // -------------------------
-            let (mut final_s, mut final_m) = if (activation_type == 1 /* RELU */) {
+            let (mut final_s, mut final_m) = if (activation_type == RELU /* RELU */) {
                 graph::apply_relu_element(acc3_s, acc3_m)
             } else {
                 (acc3_s, acc3_m)
@@ -247,13 +251,12 @@ entry public fun ptb_finalize(
     let accum_sgn = partial_ref.accum_sign;
 
     // 2) shape 계산 => [batch, out_dim]
-    let total_len = vector::length(&accum_mag);
+    // let total_len = vector::length(&accum_mag);
     // batch = total_len / out_dim (integer division)
-    let batch = total_len / out_dim;
 
     // 3) make shape vector
     let mut out_shape = vector::empty<u64>();
-    vector::push_back(&mut out_shape, batch);
+    vector::push_back(&mut out_shape, 1);
     vector::push_back(&mut out_shape, out_dim);
 
     // 4) create_signed_fixed => scale=s
@@ -464,6 +467,27 @@ entry public fun ptb_finalize(
     
     }
 
+    entry public fun ptb_graph_1(graph: &graph::SignedFixedGraph,
+        input_magnitude: vector<u64>,input_sign: vector<u64>,scale: u64,
+        ) : (vector<u64>, vector<u64>, u64){
+
+        let inp_shape = vector[1,49];
+        let input_tensor = from_input(inp_shape, input_magnitude, input_sign, scale);
+
+        let dense1 = graph::get_layer_signed_fixed(graph, b"dense1");
+
+        let result = graph::apply_dense_signed_fixed_2(
+                        &input_tensor,
+                        graph::get_weight_tensor(dense1), 
+                        graph::get_bias_tensor(dense1),
+                        1
+                    );
+
+        let results_mag = get_magnitude(&result);
+        let results_sign = get_sign(&result);
+        (results_mag, results_sign, scale)
+
+    }
 
 
     entry public fun ptb_graph_2(graph: &graph::SignedFixedGraph,
