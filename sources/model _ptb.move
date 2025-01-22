@@ -228,9 +228,9 @@ entry public fun ptb_chunk(
 ) {
 
     let partial_ref = get_partial_by_name_mut(pd, partial_name);
-    let out_dim = partial_ref.out_dim;  
+    let in_dim = partial_ref.in_dim;  
     let s = partial_ref.scale; 
-    let inp_shape = vector[1,out_dim];
+    let inp_shape = vector[1,in_dim];
     let input_tensor = from_input(inp_shape, input_magnitude, input_sign, s);
              
     ptb_graph_2_compute_chunk(graph_obj, pd, partial_name, &input_tensor, activation_type, start_j, end_j);
@@ -284,127 +284,127 @@ entry public fun ptb_finalize(
 
 
 
-    entry public fun ptb_graph_compute_chunk(
-        graph_obj: &graph::SignedFixedGraph,
-        pd: &mut PartialDenses,
-        partial_name : vector<u8>,
-        input_magnitude: vector<u64>,
-        input_sign: vector<u64>,
-        start_j: u64,
-        end_j: u64
-    ) {
+    // entry public fun ptb_graph_compute_chunk(
+    //     graph_obj: &graph::SignedFixedGraph,
+    //     pd: &mut PartialDenses,
+    //     partial_name : vector<u8>,
+    //     input_magnitude: vector<u64>,
+    //     input_sign: vector<u64>,
+    //     start_j: u64,
+    //     end_j: u64
+    // ) {
 
-        let partial_ref = get_partial_by_name_mut(pd, partial_name);
-        let layer = graph::get_layer_signed_fixed(graph_obj, partial_name);
-        let w = graph::get_weight_tensor(layer);  // shape=[in_dim, out_dim], scale(?)
+    //     let partial_ref = get_partial_by_name_mut(pd, partial_name);
+    //     let layer = graph::get_layer_signed_fixed(graph_obj, partial_name);
+    //     let w = graph::get_weight_tensor(layer);  // shape=[in_dim, out_dim], scale(?)
 
-        let out_dim = partial_ref.out_dim;
-        let in_dim  = partial_ref.in_dim;
-        let s       = partial_ref.scale;
+    //     let out_dim = partial_ref.out_dim;
+    //     let in_dim  = partial_ref.in_dim;
+    //     let s       = partial_ref.scale;
 
-        assert!(end_j <= out_dim, 9999);
+    //     assert!(end_j <= out_dim, 9999);
 
-        let pmag = &mut partial_ref.accum_mag;
-        let psgn = &mut partial_ref.accum_sign;
+    //     let pmag = &mut partial_ref.accum_mag;
+    //     let psgn = &mut partial_ref.accum_sign;
 
-        let mut j = start_j;
-        while (j < end_j) {
-            let old_s = *vector::borrow(psgn, j);
-            let old_m = *vector::borrow(pmag, j);
+    //     let mut j = start_j;
+    //     while (j < end_j) {
+    //         let old_s = *vector::borrow(psgn, j);
+    //         let old_m = *vector::borrow(pmag, j);
 
-            let mut new_sgn = old_s;
-            let mut new_mag = old_m;
+    //         let mut new_sgn = old_s;
+    //         let mut new_mag = old_m;
 
-            let mut i = 0;
-            while (i < in_dim) {
-                let in_s = *vector::borrow(&input_sign, i);
-                let in_m = *vector::borrow(&input_magnitude, i);
+    //         let mut i = 0;
+    //         while (i < in_dim) {
+    //             let in_s = *vector::borrow(&input_sign, i);
+    //             let in_m = *vector::borrow(&input_magnitude, i);
 
-                let w_index = i*out_dim + j;
-                let w_s = *vector::borrow(&get_sign(w), w_index);
-                let w_m = *vector::borrow(&get_magnitude(w), w_index);
+    //             let w_index = i*out_dim + j;
+    //             let w_s = *vector::borrow(&get_sign(w), w_index);
+    //             let w_m = *vector::borrow(&get_magnitude(w), w_index);
 
-                // 곱 => scale=2*s (가정)
-                let mul_s = if (in_s == w_s) { 0 } else { 1 };
-                let mul_m = in_m * w_m;
+    //             // 곱 => scale=2*s (가정)
+    //             let mul_s = if (in_s == w_s) { 0 } else { 1 };
+    //             let mul_m = in_m * w_m;
 
-                let (res_s, res_m) = graph::signed_add_element(new_sgn, new_mag, mul_s, mul_m);
-                new_sgn = res_s;
-                new_mag = res_m;
+    //             let (res_s, res_m) = graph::signed_add_element(new_sgn, new_mag, mul_s, mul_m);
+    //             new_sgn = res_s;
+    //             new_mag = res_m;
 
-                i = i + 1;
-            };
+    //             i = i + 1;
+    //         };
 
-            // update
-            *vector::borrow_mut(psgn, j) = new_sgn;
-            *vector::borrow_mut(pmag, j) = new_mag;
+    //         // update
+    //         *vector::borrow_mut(psgn, j) = new_sgn;
+    //         *vector::borrow_mut(pmag, j) = new_mag;
 
-            j = j + 1;
-        };
-    }
-
-
-    entry public fun ptb_graph_finalize(
-        graph_obj: &graph::SignedFixedGraph,
-        pd: &mut PartialDenses,
-        partial_name : vector<u8>,
-    ): (vector<u64>, vector<u64>, u64) {
-        // dense1
-
-        let partial_ref = get_partial_by_name_mut(pd, partial_name);
-
-        let layer = graph::get_layer_signed_fixed(graph_obj, partial_name);
-        let bias = graph::get_bias_tensor(layer);
-
-        let out_dim = partial_ref.out_dim;
-        let s = partial_ref.scale;
-
-        let accum_mag = partial_ref.accum_mag;  // by-value
-        let accum_sgn = partial_ref.accum_sign; // by-value
-
-        let mut final_mag = vector::empty<u64>();
-        let mut final_sgn = vector::empty<u64>();
-
-        let mut j = 0;
-        while (j < out_dim) {
-            let acc_s = *vector::borrow(&accum_sgn, j);
-            let acc_m = *vector::borrow(&accum_mag,  j);
-
-            // scale=s -> 2s
-            let factor = scale_up(1, s);
-
-            let b_s = *vector::borrow(&get_sign(bias), j);
-            let b_m = *vector::borrow(&get_magnitude(bias), j);
-            let b_m_2s = b_m * factor;
-
-            let (sum_s, sum_m) = graph::signed_add_element(acc_s, acc_m, b_s, b_m_2s);
+    //         j = j + 1;
+    //     };
+    // }
 
 
-            let (mut final_s, mut final_m) =graph::apply_relu_element(sum_s, sum_m);
+    // entry public fun ptb_graph_finalize(
+    //     graph_obj: &graph::SignedFixedGraph,
+    //     pd: &mut PartialDenses,
+    //     partial_name : vector<u8>,
+    // ): (vector<u64>, vector<u64>, u64) {
+    //     // dense1
+
+    //     let partial_ref = get_partial_by_name_mut(pd, partial_name);
+
+    //     let layer = graph::get_layer_signed_fixed(graph_obj, partial_name);
+    //     let bias = graph::get_bias_tensor(layer);
+
+    //     let out_dim = partial_ref.out_dim;
+    //     let s = partial_ref.scale;
+
+    //     let accum_mag = partial_ref.accum_mag;  // by-value
+    //     let accum_sgn = partial_ref.accum_sign; // by-value
+
+    //     let mut final_mag = vector::empty<u64>();
+    //     let mut final_sgn = vector::empty<u64>();
+
+    //     let mut j = 0;
+    //     while (j < out_dim) {
+    //         let acc_s = *vector::borrow(&accum_sgn, j);
+    //         let acc_m = *vector::borrow(&accum_mag,  j);
+
+    //         // scale=s -> 2s
+    //         let factor = scale_up(1, s);
+
+    //         let b_s = *vector::borrow(&get_sign(bias), j);
+    //         let b_m = *vector::borrow(&get_magnitude(bias), j);
+    //         let b_m_2s = b_m * factor;
+
+    //         let (sum_s, sum_m) = graph::signed_add_element(acc_s, acc_m, b_s, b_m_2s);
 
 
-            // ReLU
-            // let mut relu_s = sum_s;
-            // let mut relu_m = sum_m;
-            // if (relu_s == 1) {
-            //     relu_s = 0;
-            //     relu_m = 0;
-            // };
-
-            // scale-down (2s -> s)
-            let divisor = scale_up(1, s);
-            let out_m = final_m / divisor;
+    //         let (mut final_s, mut final_m) =graph::apply_relu_element(sum_s, sum_m);
 
 
-            vector::push_back(&mut final_sgn, final_s);
-            vector::push_back(&mut final_mag, out_m);
+    //         // ReLU
+    //         // let mut relu_s = sum_s;
+    //         // let mut relu_m = sum_m;
+    //         // if (relu_s == 1) {
+    //         //     relu_s = 0;
+    //         //     relu_m = 0;
+    //         // };
 
-            j = j + 1;
-        };
+    //         // scale-down (2s -> s)
+    //         let divisor = scale_up(1, s);
+    //         let out_m = final_m / divisor;
 
-        // 반환
-        (final_mag, final_sgn, s)
-    }
+
+    //         vector::push_back(&mut final_sgn, final_s);
+    //         vector::push_back(&mut final_mag, out_m);
+
+    //         j = j + 1;
+    //     };
+
+    //     // 반환
+    //     (final_mag, final_sgn, s)
+    // }
 
 
 

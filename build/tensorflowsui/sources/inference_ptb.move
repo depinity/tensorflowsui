@@ -80,38 +80,38 @@ module tensorflowsui::inference_ptb {
         let input_mag = vector[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 44, 30, 37, 0, 0, 0, 50, 3, 89, 0, 0, 0, 0, 0, 99, 5, 0, 0, 0, 0, 63, 5, 46, 0, 0, 0, 0, 97, 85, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
         let input_sign = vector[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
         
-        model::ptb_graph_compute_chunk(
-            graph,
-            pd1,
-            b"dense1",
-            input_mag,
-            input_sign,
-            0,
-            7
-        );
+        // model::ptb_graph_compute_chunk(
+        //     graph,
+        //     pd1,
+        //     b"dense1",
+        //     input_mag,
+        //     input_sign,
+        //     0,
+        //     7
+        // );
 
-        model::ptb_graph_compute_chunk(
-            graph,
-            pd1,
-            b"dense1",
-            input_mag,
-            input_sign,
-            8,
-            15
-        );
+        // model::ptb_graph_compute_chunk(
+        //     graph,
+        //     pd1,
+        //     b"dense1",
+        //     input_mag,
+        //     input_sign,
+        //     8,
+        //     15
+        // );
 
-        // 2) finalize => (mag1, sign1, scale1)
-        let (mag1, sign1, scale1) = model::ptb_graph_finalize(
-            graph,
-            pd1,
-            b"dense1"
-        );
+        // // 2) finalize => (mag1, sign1, scale1)
+        // let (mag1, sign1, scale1) = model::ptb_graph_finalize(
+        //     graph,
+        //     pd1,
+        //     b"dense1"
+        // );
         
-        let (mag2, sign2, scale2) = model::ptb_graph_2(graph, mag1, sign1, scale1);
-        let label = model::ptb_graph_3(graph, mag2, sign2, scale2);
+        // let (mag2, sign2, scale2) = model::ptb_graph_2(graph, mag1, sign1, scale1);
+        // let label = model::ptb_graph_3(graph, mag2, sign2, scale2);
 
-        debug::print(&std::string::utf8(b"predicted label: "));
-        debug::print(&label);
+        // debug::print(&std::string::utf8(b"predicted label: "));
+        // debug::print(&label);
     }
 
 
