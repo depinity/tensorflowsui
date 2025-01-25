@@ -2,19 +2,14 @@ module tensorflowsui::tensor {
 
     use std::string;
     public struct Tensor has drop {
-        shape: vector<u64>,    // tensor shape
-        data: vector<u64>,     // tenssor data
+        shape: vector<u64>,    
+        data: vector<u64>,     
     }
 
     public fun get_data(tensor: &Tensor): vector<u64> {
         tensor.data
     }
 
-    // public fun get_shape(tensor: &Tensor): vector<u64> {
-    //     tensor.shape
-    // }
-
-    // 텐서 생성
     public fun create(shape: vector<u64>, data: vector<u64>): Tensor {
         assert!(vector::length(&shape) > 0, 1); // 최소 1차원이어야 함
         Tensor { shape, data }
@@ -106,13 +101,10 @@ module tensorflowsui::tensor {
     };
 }
 
-
 fun safe_to_u8(c: u64): u8 {
-    // c가 0..255 범위라고 "가정"하거나,
-    // 여기서는 '0'..'9'(48..57)만 다루므로
+    
     assert!(c >= 48 && c <= 57, 9999);
 
-    // 이제 if문으로 매핑
     if (c == 48) { return 48u8; };
     if (c == 49) { return 49u8; };
     if (c == 50) { return 50u8; };
@@ -126,7 +118,6 @@ fun safe_to_u8(c: u64): u8 {
     abort 9999
 }
 
-/// buf 뒤에 data를 순서대로 붙이기
 fun append_bytes(buf: &mut vector<u8>, data: &vector<u8>) {
     let len_data = vector::length(data);
     let mut i = 0;
@@ -135,7 +126,7 @@ fun append_bytes(buf: &mut vector<u8>, data: &vector<u8>) {
         i = i + 1;
     }
 }
-/// u64 -> 10진수 ASCII 바이트열 (예: 123 -> [51,50,49])
+
 fun u64_to_bytes(num: u64): vector<u8> {
     if (num == 0) {
         // "0" => [48]
@@ -150,15 +141,10 @@ fun u64_to_bytes(num: u64): vector<u8> {
     while (x > 0) {
         let d = x % 10;   // 0..9
         let c = 48 + d;   // '0'=48 ~ '9'=57
-        // c는 u64 (48..57), 근데 push_back expects u8
-        // => Move에 cast가 없으므로 "c must be in range"
-        //    그리고 c는 최대 57, 문제 없으니
-        //    아래처럼 수작업 if문으로 매핑하거나 (간단 예시)
         vector::push_back(&mut digits, safe_to_u8(c));
         x = x / 10;
     };
 
-    // 지금 digits는 역순 ex) 123 -> [51,50,49]
     reverse_bytes(&mut digits); // 아래 함수
 
     digits
@@ -170,43 +156,31 @@ fun u64_to_bytes(num: u64): vector<u8> {
 public fun to_string(tensor: &SignedFixedTensor): vector<u8> {
     let len = vector::length(&tensor.magnitude);
 
-    // 1) 최종 문자열을 담을 바이트 벡터 준비
     let mut bytes = vector::empty<u8>();
 
-    // 앞에 '[' 넣기
     append_bytes(&mut bytes, &b"[");
 
     let mut i = 0;
     while (i < len) {
-        // ----------------------------
-        // (1) 부호
-        // ----------------------------
+       
         let sgn = *vector::borrow(&tensor.sign, i);
         if (sgn == 1) {
-            // 음수면 '-' 추가
+            
             append_bytes(&mut bytes, &b"-");
         };
 
-        // ----------------------------
-        // (2) 정수부, 소수부
-        // ----------------------------
         let mag = *vector::borrow(&tensor.magnitude, i);
         let divisor = scale_up(1, tensor.scale);
-        let integer_val = mag / divisor;   // 예: 1234 -> 12.34
+        let integer_val = mag / divisor;   // ex: 1234 -> 12.34
         let fraction_val = mag % divisor;
 
-        // integer_val -> 바이트로
-        let int_bytes = u64_to_bytes(integer_val);  // 아래 함수
+        let int_bytes = u64_to_bytes(integer_val);  
         append_bytes(&mut bytes, &int_bytes);
-
-        // '.' 추가
         append_bytes(&mut bytes, &b".");
 
-        // fraction_val -> 바이트로
         let frac_bytes = u64_to_bytes(fraction_val);
         append_bytes(&mut bytes, &frac_bytes);
 
-        // 쉼표(", ") 처리
         if (i < len - 1) {
             append_bytes(&mut bytes, &b", ");
         };
@@ -214,19 +188,12 @@ public fun to_string(tensor: &SignedFixedTensor): vector<u8> {
         i = i + 1;
     };
 
-    // 닫는 bracket ']'
     append_bytes(&mut bytes, &b"]");
 
-    // 2) 이제 bytes: vector<u8> => string::String
     bytes
 }
 
 
-    //
-    // ----------------------------------------------------
-    // 8) (입출력 변환) + (디버깅)
-    // ----------------------------------------------------
-    //
     public fun from_input(
         shape: vector<u64>,
         input_magnitude: vector<u64>,
@@ -365,44 +332,26 @@ public fun divide(a: &SignedFixedTensor, b: &SignedFixedTensor): SignedFixedTens
     }
 
 
-    //
-    // ----------------------------------------------------
-    // 6) max_value, argmax
-    // ----------------------------------------------------
-    /// 주어진 (부호, 크기) vs (부호, 크기)에서
-    /// A > B 인지 여부를 bool로 반환
-    /// scale은 동일하다고 가정 -> 크기값(magnitude)만 비교하면 됨
     fun is_a_greater_than_b(a_sign: u64, a_mag: u64,
                             b_sign: u64, b_mag: u64): bool {
-        // 1) 부호 비교
+        
         if (a_sign == 0 && b_sign == 1) {
-            // A=양수, B=음수 => A > B
             return true
         } else if (a_sign == 1 && b_sign == 0) {
-            // A=음수, B=양수 => A < B
             return false
         };
 
-        // 2) 둘 다 양수인 경우
         if (a_sign == 0 && b_sign == 0) {
-            // magnitude 큰 쪽이 더 큼
             return (a_mag > b_mag)
         };
-
-        // 3) 둘 다 음수인 경우
-        // -2 vs -3일 때, -2가 더 크다 => 2 < 3
-        // => magnitude가 작은 쪽이 더 큼
-        // A가 더 크려면 => a_mag < b_mag
+       
         return (a_mag < b_mag)
     }
 
-    /// tensor 내 모든 요소 중 최댓값을 찾아 반환
-    /// (반환 shape=[1], scale은 동일 유지)
     public fun max_value(t: &SignedFixedTensor): SignedFixedTensor {
         let n = vector::length(&t.magnitude);
         assert!(n > 0, 2001);
 
-        // 초기값 = 첫 원소
         let mut max_sgn = *vector::borrow(&t.sign, 0);
         let mut max_mag = *vector::borrow(&t.magnitude, 0);
 
@@ -419,7 +368,6 @@ public fun divide(a: &SignedFixedTensor, b: &SignedFixedTensor): SignedFixedTens
             i = i + 1;
         };
 
-        // shape=[1]
         let mut out_shape = vector::empty<u64>();
         vector::push_back(&mut out_shape, 1);
 
@@ -432,8 +380,6 @@ public fun divide(a: &SignedFixedTensor, b: &SignedFixedTensor): SignedFixedTens
         create_signed_fixed(out_shape, out_mag, out_sign, t.scale)
     }
 
-    /// tensor 내 최댓값 인덱스(argmax)
-    /// 여러 차원이 있을 경우, 일단 1D (flatten) 인덱스로 간주
     public fun argmax(t: &SignedFixedTensor): u64 {
         let n = vector::length(&t.magnitude);
         assert!(n > 0, 2101);

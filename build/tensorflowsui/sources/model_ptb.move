@@ -17,8 +17,8 @@ module tensorflowsui::model_ptb {
 
     public struct PartialDense has  copy, drop, store {
         name: vector<u8>,
-        accum_mag: vector<u64>,   // length = out_dim
-        accum_sign: vector<u64>,  // length = out_dim
+        accum_mag: vector<u64>,   
+        accum_sign: vector<u64>,  
         out_dim: u64,
         in_dim: u64,
         scale: u64,
@@ -61,7 +61,6 @@ module tensorflowsui::model_ptb {
         let name = graph::get_layer_name(layer_ref);
         let s = 2;
 
-        // 2) accum_mag/accum_sign = 0 초기화
         let mut mag = vector::empty<u64>();
         let mut sgn = vector::empty<u64>();
         let mut i = 0;
@@ -71,7 +70,6 @@ module tensorflowsui::model_ptb {
             i = i + 1;
         };
 
-        // 3) PartialDense 생성
         let new_partial = PartialDense {
             name,
             accum_mag: mag,
@@ -81,15 +79,15 @@ module tensorflowsui::model_ptb {
             scale: s,
         };
 
-        // 4) partial_denses.partials 에 push_back
+        
         vector::push_back(&mut partial_denses.partials, new_partial);
     }
+
     public fun add_partials_for_all_but_last(
         graph_obj: &graph::SignedFixedGraph,
         partial_denses: &mut PartialDenses
     ) {
         let total = graph::get_layer_count(graph_obj);
-        // 마지막 빼고 => 0..(total-1)
         let mut i = 0;
         while (i < (total - 1)) {
             add_partial_for_layer(graph_obj, i, partial_denses);
@@ -97,10 +95,7 @@ module tensorflowsui::model_ptb {
         }
     }
 
-
-
-
-public fun ptb_graph_2_compute_chunk(
+    public fun ptb_graph_2_compute_chunk(
     graph_obj: &graph::SignedFixedGraph,
     p_denses: &mut PartialDenses,
     partial_name: vector<u8>,           
@@ -109,47 +104,27 @@ public fun ptb_graph_2_compute_chunk(
     start_j: u64,
     end_j: u64
 ) {
-    // 1) partial_denses에서 partial_name을 가진 partial 찾기
+    
     let partial_ref = get_partial_by_name_mut(p_denses, partial_name);
-
-    // 2) 레이어 가져오기
     let layer = graph::get_layer_signed_fixed(graph_obj, partial_name);
     let w = graph::get_weight_tensor(layer);
     let b = graph::get_bias_tensor(layer);
-
-    // 3) partial에서 out_dim, scale 가져오기
     let out_dim = partial_ref.out_dim;  
-    // let s = partial_ref.scale;
     let s = get_scale(input_tensor);          
 
-    // input_tensor에서 batch, in_dim 추출
     let batch = *vector::borrow(&get_shape(input_tensor), 0);
     let in_dim = *vector::borrow(&get_shape(input_tensor), 1);
 
-    // partial_ref.in_dim, partial_ref.out_dim 과 in_dim, out_dim이 일치하는지 검사(선택)
-    // ...
-
-    // accum_mag, accum_sign (크기 = batch * out_dim)
     let pmag = &mut partial_ref.accum_mag;
     let psgn = &mut partial_ref.accum_sign;
 
     assert!(end_j <= out_dim, 9999);
 
-    // 배치 루프
     let mut b_idx = 0;
     while (b_idx < batch) {
-        // 출력 노드 루프 (start_j..end_j)
         let mut j_idx = start_j;
         while (j_idx <= end_j) {
-            // partial 기존값
             let index = b_idx*out_dim + j_idx;
-
-            // let old_s = *vector::borrow(psgn, index);
-            // let old_m = *vector::borrow(pmag, index);
-
-            // -------------------------
-            // 1) (입력 x weight) => scale=2s
-            // -------------------------
             let mut acc_sgn = 0;
             let mut acc_mag = 0;
 
@@ -158,15 +133,11 @@ public fun ptb_graph_2_compute_chunk(
                 let in_index = b_idx*in_dim + i_idx;
                 let w_index  = i_idx*out_dim + j_idx;
 
-                // input
                 let in_s = *vector::borrow(&get_sign(input_tensor), in_index);
                 let in_m = *vector::borrow(&get_magnitude(input_tensor), in_index);
 
-                // weight
                 let w_s = *vector::borrow(&get_sign(w), w_index);
                 let w_m = *vector::borrow(&get_magnitude(w), w_index);
-
-                // 곱 => scale=2s
                 let mul_s = if (in_s == w_s) { 0 } else {1};
                 let mul_m = in_m * w_m;
 
@@ -177,9 +148,6 @@ public fun ptb_graph_2_compute_chunk(
                 i_idx = i_idx + 1;
             };
 
-            // -------------------------
-            // 2) bias => s->2s
-            // -------------------------
             let factor = scale_up(1, s);
             let b_s = *vector::borrow(&get_sign(b), j_idx);
             let b_m = *vector::borrow(&get_magnitude(b), j_idx);
@@ -187,26 +155,14 @@ public fun ptb_graph_2_compute_chunk(
 
             let (acc3_s, acc3_m) = graph::signed_add_element(acc_sgn, acc_mag, b_s, b_m_2s);
 
-            // -------------------------
-            // 3) activation_type => RELU or NONE
-            // -------------------------
             let (mut final_s, mut final_m) = if (activation_type == RELU /* RELU */) {
                 graph::apply_relu_element(acc3_s, acc3_m)
             } else {
                 (acc3_s, acc3_m)
             };
 
-            // (SOFTMAX는 row단위 계산 필요 -> 여기선 생략 or if ==2 => abort)
-
-            // -------------------------
-            // 4) scale-down => 2s->s
-            // -------------------------
             let divisor = scale_up(1, s);
             let rounded_m = final_m / divisor;
-
-            // -------------------------
-            // partial 배열에 최종값(s)을 저장
-            // -------------------------
             *vector::borrow_mut(psgn, index) = final_s;
             *vector::borrow_mut(pmag, index) = rounded_m;
 
@@ -241,25 +197,15 @@ entry public fun ptb_finalize(
             pd: &mut PartialDenses,
     partial_name: vector<u8>
 ): (vector<u64>, vector<u64>, u64) {
-    // 1) 해당 partial 가져오기 (읽기 전용으로 충분하므로 &PartialDense)
-      let partial_ref = get_partial_by_name_mut(pd, partial_name);
-
-
+    let partial_ref = get_partial_by_name_mut(pd, partial_name);
     let out_dim = partial_ref.out_dim;
-    let s = partial_ref.scale;       // e.g. 2
+    let s = partial_ref.scale;       
     let accum_mag = partial_ref.accum_mag; 
     let accum_sgn = partial_ref.accum_sign;
-
-    // 2) shape 계산 => [batch, out_dim]
-    // let total_len = vector::length(&accum_mag);
-    // batch = total_len / out_dim (integer division)
-
-    // 3) make shape vector
     let mut out_shape = vector::empty<u64>();
     vector::push_back(&mut out_shape, 1);
     vector::push_back(&mut out_shape, out_dim);
 
-    // 4) create_signed_fixed => scale=s
     let result_tensor = create_signed_fixed(
         out_shape,
         accum_mag,
@@ -267,22 +213,10 @@ entry public fun ptb_finalize(
         s
     );
 
-    // 5) 반환 => SignedFixedTensor
-
-        let results_mag = get_magnitude(&result_tensor);
-        let results_sign = get_sign(&result_tensor);
-        (results_mag, results_sign, s)
-
-
-
+    let results_mag = get_magnitude(&result_tensor);
+    let results_sign = get_sign(&result_tensor);
+    (results_mag, results_sign, s)
 }
-
-
-
-
-
-
-
 
     entry public fun ptb_graph_compute_chunk(
         graph_obj: &graph::SignedFixedGraph,
@@ -300,7 +234,6 @@ entry public fun ptb_finalize(
 
         let out_dim = partial_ref.out_dim;
         let in_dim  = partial_ref.in_dim;
-        let s       = partial_ref.scale;
 
         assert!(end_j <= out_dim, 9999);
 
@@ -334,8 +267,6 @@ entry public fun ptb_finalize(
 
                 i = i + 1;
             };
-
-            // update
             *vector::borrow_mut(psgn, j) = new_sgn;
             *vector::borrow_mut(pmag, j) = new_mag;
 
@@ -349,8 +280,6 @@ entry public fun ptb_finalize(
         pd: &mut PartialDenses,
         partial_name : vector<u8>,
     ): (vector<u64>, vector<u64>, u64) {
-        // dense1
-
         let partial_ref = get_partial_by_name_mut(pd, partial_name);
 
         let layer = graph::get_layer_signed_fixed(graph_obj, partial_name);
@@ -359,8 +288,8 @@ entry public fun ptb_finalize(
         let out_dim = partial_ref.out_dim;
         let s = partial_ref.scale;
 
-        let accum_mag = partial_ref.accum_mag;  // by-value
-        let accum_sgn = partial_ref.accum_sign; // by-value
+        let accum_mag = partial_ref.accum_mag;  
+        let accum_sgn = partial_ref.accum_sign; 
 
         let mut final_mag = vector::empty<u64>();
         let mut final_sgn = vector::empty<u64>();
@@ -370,7 +299,6 @@ entry public fun ptb_finalize(
             let acc_s = *vector::borrow(&accum_sgn, j);
             let acc_m = *vector::borrow(&accum_mag,  j);
 
-            // scale=s -> 2s
             let factor = scale_up(1, s);
 
             let b_s = *vector::borrow(&get_sign(bias), j);
@@ -382,16 +310,6 @@ entry public fun ptb_finalize(
 
             let (mut final_s, mut final_m) =graph::apply_relu_element(sum_s, sum_m);
 
-
-            // ReLU
-            // let mut relu_s = sum_s;
-            // let mut relu_m = sum_m;
-            // if (relu_s == 1) {
-            //     relu_s = 0;
-            //     relu_m = 0;
-            // };
-
-            // scale-down (2s -> s)
             let divisor = scale_up(1, s);
             let out_m = final_m / divisor;
 
@@ -402,7 +320,6 @@ entry public fun ptb_finalize(
             j = j + 1;
         };
 
-        // 반환
         (final_mag, final_sgn, s)
     }
 
