@@ -66,35 +66,20 @@ module tensorflowsui::inference {
         input_sign: vector<u64>,
         scale: u64
     ) {
-        // -----------------------------
-        // (A) 고정소수점 그래프 생성
-        // -----------------------------
+
         let mut graph_sf = graph::create_signed_graph();
 
-        // -----------------------------
-        // (B) 모델 생성 (dense1, dense2, output)
-        //     shape: [3,6], [6,4], [4,2]
-        // -----------------------------
         model::create_model_signed_fixed(&mut graph_sf, scale);
 
-        // -----------------------------
-        // (D) 입력 텐서 생성
-        //     shape=[1,3], magnitude=input_magnitude, sign=input_sign
-        // -----------------------------
+
         let inp_shape = vector[1,49];
         let input_tensor = from_input(inp_shape, input_magnitude, input_sign, scale);
 
         debug::print(&std::string::utf8(b"[fixed] input tensor: "));
         debug_print_tensor(&input_tensor);
 
-        // -----------------------------
-        // (E) 추론
-        // -----------------------------
+
         let result = model::run_inference_signed_fixed(&input_tensor, &graph_sf);
-        // debug_print_tensor(&result);
-        // -----------------------------
-        // (F) 결과 확인
-        // -----------------------------
 
         let label = argmax(&result);
 

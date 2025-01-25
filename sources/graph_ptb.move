@@ -4,7 +4,6 @@ module tensorflowsui::graph_ptb {
     use sui::transfer;
     use sui::tx_context::{Self,TxContext};
 
-
     use std::debug;
 
     const NONE : u64= 0;
@@ -18,14 +17,13 @@ module tensorflowsui::graph_ptb {
         debug_print_tensor
     };
 
-
     public struct SignedFixedLayer has copy, drop, store {
         name: vector<u8>,
         layer_type: vector<u8>,
         in_dim: u64,
         out_dim: u64,
-        weight_tensor: SignedFixedTensor,  // shape=[in_dim, out_dim], scale=??
-        bias_tensor: SignedFixedTensor,    // shape=[out_dim], same scale
+        weight_tensor: SignedFixedTensor,  
+        bias_tensor: SignedFixedTensor,    
     }
 
     public struct SignedFixedGraph has key, store {
@@ -43,7 +41,7 @@ module tensorflowsui::graph_ptb {
     public fun get_layer_at(graph: &SignedFixedGraph, idx: u64): &SignedFixedLayer {
         vector::borrow(&graph.layers, idx)
     }
-    // Getter 함수들 (field를 반환)
+    
     public fun get_weight_tensor(layer: &SignedFixedLayer): &SignedFixedTensor {
         &layer.weight_tensor
     }
@@ -64,7 +62,7 @@ module tensorflowsui::graph_ptb {
         layer.name
     }
 
- // DenseSignedFixed: in_dim/out_dim, (초기 weight=1, etc.), scale=2
+
     public fun DenseSignedFixed(
         graph: &mut SignedFixedGraph,
         in_dim: u64,
@@ -78,8 +76,8 @@ module tensorflowsui::graph_ptb {
 
         let mut i = 0;
         while (i < weight_count) {
-            vector::push_back(&mut mag_w, 1);  // default 1
-            vector::push_back(&mut sgn_w, 0);  // +1
+            vector::push_back(&mut mag_w, 1);  
+            vector::push_back(&mut sgn_w, 0);  
             i = i + 1;
         };
 
@@ -120,8 +118,6 @@ module tensorflowsui::graph_ptb {
         layer
     }
 
-
-// set_layer_weights_signed_fixed: Python에서 구한 (magnitude,sign)으로 대입
     public fun set_layer_weights_signed_fixed(
         graph: &mut SignedFixedGraph,
         name: vector<u8>,
@@ -158,7 +154,6 @@ module tensorflowsui::graph_ptb {
         abort 4444;
     }
 
-    // get_layer_signed_fixed
     public fun get_layer_signed_fixed(graph: &SignedFixedGraph, name: vector<u8>): &SignedFixedLayer {
         let mut i = 0;
         while (i < vector::length(&graph.layers)) {
@@ -171,20 +166,12 @@ module tensorflowsui::graph_ptb {
         abort 9999
     }
 
-    //
-    // ----------------------------------------------------
-    // 3) apply_dense_signed_fixed (행렬 곱 + bias + ReLU)
-    // ----------------------------------------------------
-    /// scale 처리는 “곱 => 2s, bias => s->2s 맞춤, 최종 s”
+
     public fun apply_dense_signed_fixed(
         input_tensor: &SignedFixedTensor,
         weight_tensor: &SignedFixedTensor,
         bias_tensor: &SignedFixedTensor
     ): SignedFixedTensor {
-        // input: shape=[batch, in_dim]
-        // weight: shape=[in_dim, out_dim]
-        // bias: shape=[out_dim]
-        // => output: shape=[batch, out_dim]
 
         let batch = *vector::borrow(&get_shape(input_tensor), 0);
         let in_dim = *vector::borrow(&get_shape(input_tensor), 1);
@@ -195,7 +182,7 @@ module tensorflowsui::graph_ptb {
         assert!(in_dim == w_in, 10001);
         assert!(w_out == b_out, 10002);
 
-        // scale
+        
         let s =  get_scale(input_tensor);
         assert!(s == get_scale(weight_tensor), 10003);
         assert!(s == get_scale(bias_tensor),   10004);
@@ -211,11 +198,10 @@ module tensorflowsui::graph_ptb {
         while (b_idx < batch) {
             let mut j_idx = 0;
             while (j_idx < w_out) {
-                // acc => scale=2s
+                
                 let mut acc_sgn = 0;
                 let mut acc_mag = 0;
 
-                // (행렬 곱)
                 let mut i_idx = 0;
                 while (i_idx < in_dim) {
                     let in_index = b_idx*in_dim + i_idx;
@@ -226,7 +212,7 @@ module tensorflowsui::graph_ptb {
                     let w_s  = *vector::borrow(&get_sign(weight_tensor), w_index);
                     let w_m  = *vector::borrow(&get_magnitude(weight_tensor), w_index);
 
-                    // 곱 => scale=2s
+                    
                     let mul_s = if (in_s == w_s) { 0 } else { 1 };
                     let mul_m = in_m * w_m;
 
@@ -240,7 +226,6 @@ module tensorflowsui::graph_ptb {
                     i_idx = i_idx + 1;
                 };
 
-                // bias => scale=s -> 2s
                 let factor = scale_up(1, s);
                 let b_s  = *vector::borrow(&get_sign(bias_tensor), j_idx);
                 let b_m  = *vector::borrow(&get_magnitude(bias_tensor), j_idx);
@@ -251,7 +236,6 @@ module tensorflowsui::graph_ptb {
                     b_s,     b_m_2s
                 );
 
-                // ReLU => 음수=0
                 let mut final_s = acc3_s;
                 let mut final_m = acc3_m;
                 if (final_s == 1) {
@@ -259,7 +243,6 @@ module tensorflowsui::graph_ptb {
                     final_m = 0;
                 };
 
-                // 최종 => scale=s (2s -> s)
                 let divisor = scale_up(1, s);
                 let rounded_m = final_m / divisor;
 
@@ -276,10 +259,10 @@ module tensorflowsui::graph_ptb {
 
 public fun apply_relu_element(sign: u64, mag: u64): (u64, u64) {
     if (sign == 1) {
-        // 음수인 경우 => 0으로 clamp
+       
         (0, 0)
     } else {
-        // 양수 => 그대로 (sign, mag)
+        
         (sign, mag)
     }
 }
@@ -289,7 +272,7 @@ public fun apply_dense_signed_fixed_2(
     input_tensor: &SignedFixedTensor,
     weight_tensor: &SignedFixedTensor,
     bias_tensor:   &SignedFixedTensor,
-    activation_type: u64  // 0=NONE, 1=RELU, 2=SOFTMAX
+    activation_type: u64  
 ): SignedFixedTensor {
     let batch = *vector::borrow(&get_shape(input_tensor), 0);
     let in_dim = *vector::borrow(&get_shape(input_tensor), 1);
@@ -300,7 +283,6 @@ public fun apply_dense_signed_fixed_2(
     assert!(in_dim == w_in, 10001);
     assert!(w_out == b_out, 10002);
 
-    // scale
     let s =  get_scale(input_tensor);
     assert!(s == get_scale(weight_tensor), 10003);
     assert!(s == get_scale(bias_tensor),   10004);
@@ -316,9 +298,7 @@ public fun apply_dense_signed_fixed_2(
     while (b_idx < batch) {
         let mut j_idx = 0;
         while (j_idx < w_out) {
-            // -------------------------
-            // 1) 행렬곱 누적 (scale=2s)
-            // -------------------------
+           
             let mut acc_sgn = 0;
             let mut acc_mag = 0;
 
@@ -332,7 +312,6 @@ public fun apply_dense_signed_fixed_2(
                 let w_s  = *vector::borrow(&get_sign(weight_tensor), w_index);
                 let w_m  = *vector::borrow(&get_magnitude(weight_tensor), w_index);
 
-                // 곱 => scale=2s
                 let mul_s = if (in_s == w_s) { 0 } else { 1 };
                 let mul_m = in_m * w_m;
 
@@ -346,9 +325,6 @@ public fun apply_dense_signed_fixed_2(
                 i_idx = i_idx + 1;
             };
 
-            // -------------------------
-            // 2) bias 더하기 (scale=s->2s)
-            // -------------------------
             let factor = scale_up(1, s);
             let b_s  = *vector::borrow(&get_sign(bias_tensor), j_idx);
             let b_m  = *vector::borrow(&get_magnitude(bias_tensor), j_idx);
@@ -359,20 +335,12 @@ public fun apply_dense_signed_fixed_2(
                 b_s,     b_m_2s
             );
 
-            // -------------------------
-            // 3) (옵션) ReLU 즉시 적용?
-            // -------------------------
-            // Softmax는 row 전체를 대상으로 exp & sum 하는 로직이 필요하므로
-            // 여기서는 "즉시" 적용 불가. => NONE이나 ReLU일 때만 즉시 처리
             let (mut final_s, mut final_m) = if (activation_type == RELU) {
                 apply_relu_element(acc3_s, acc3_m)
             } else {
                 (acc3_s, acc3_m)
             };
 
-            // -------------------------
-            // 4) 최종 스케일 다운 (2s -> s)
-            // -------------------------
             let divisor = scale_up(1, s);
             let rounded_m = final_m / divisor;
 
@@ -384,13 +352,8 @@ public fun apply_dense_signed_fixed_2(
         b_idx = b_idx + 1;
     };
 
-
     create_signed_fixed(out_shape, out_mag, out_sign, s)
 }
-
-
-
-
 
     public fun signed_add_element(
         s1: u64, m1: u64,
@@ -407,68 +370,42 @@ public fun apply_dense_signed_fixed_2(
         }
     }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    //////////////////////////////////////////////////
-
-
     public struct Layer has copy, drop {
-        name: vector<u8>,          // layer names
-        layer_type: vector<u8>,    // layer types (Dense, Conv2D)
-        input_nodes : u64,         // # of input nodes
-        output_nodes : u64,        // # of output nodes
-        weights: vector<u64>,      // layer weights
-        bias: vector<u64>,         // layer bias 
+        name: vector<u8>,         
+        layer_type: vector<u8>,    
+        input_nodes : u64,         
+        output_nodes : u64,        
+        weights: vector<u64>,      
+        bias: vector<u64>,         
     }
 
     public struct Graph has drop {
-        layers: vector<Layer>,     // graph
+        layers: vector<Layer>,     
     }
 
     public fun get_output_nodes(layer : &Layer) : u64 {
 
-        layer.output_nodes // get nodes
+        layer.output_nodes 
     }
 
     public fun get_weights(layer: &Layer): vector<u64> {
-        layer.weights // get weights
+        layer.weights 
     }
 
     public fun get_bias(layer: &Layer): vector<u64> {
-        layer.bias // get bias
+        layer.bias 
     }
 
     public fun get_layer_type(layer: &Layer): &vector<u8> {
-        &layer.layer_type // get layer type
+        &layer.layer_type 
     }
 
     public fun get_name(layer: &Layer): &vector<u8> {
-        &layer.name // get layer name
+        &layer.name 
     }
 
     public fun create(): Graph {
-        Graph { layers: vector::empty<Layer>() } // graph init
+        Graph { layers: vector::empty<Layer>() } 
     }
 
     public fun add_layer(graph: &mut Graph, name: vector<u8>, layer_type: vector<u8>, input_nodes:u64, output_nodes:u64  ) {
@@ -491,7 +428,6 @@ public fun apply_dense_signed_fixed_2(
     public fun initialize_bias(output_nodes: u64): vector<u64> {
         let mut bias = vector::empty<u64>();
 
-        // init bias
         let mut i = 0;
         while (i < output_nodes) {
             vector::push_back(&mut bias, 0);
@@ -576,8 +512,6 @@ public fun apply_dense_signed_fixed_2(
         std::debug::print(&std::string::utf8(b"input vector:"));
         debug::print(&inputs);
 
-
-
         std::debug::print(&std::string::utf8(b"input number:"));
         debug::print(&input_size);
         
@@ -592,11 +526,6 @@ public fun apply_dense_signed_fixed_2(
         
         debug::print(&output_nodes);
 
-    
-    // assert!(vector::length(weights) == input_size * output_nodes, 1);
-    // assert!(vector::length(bias) == output_nodes, 2);
-
-    
     let mut i = 0;
     while (i < output_nodes) {
         let mut weighted_sum = 0;
@@ -614,7 +543,6 @@ public fun apply_dense_signed_fixed_2(
 
             std::debug::print(&std::string::utf8(b"weigth_index:"));
             debug::print(& weight_index);
-
 
             weighted_sum = weighted_sum + (inputs[j] * weights[weight_index]);
             j = j + 1;
