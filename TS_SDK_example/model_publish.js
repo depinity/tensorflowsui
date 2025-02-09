@@ -225,7 +225,7 @@ async function publishToDevnet() {
     console.log("Working Directory:", process.cwd());
 
     const { modules, dependencies } = JSON.parse(
-        execSync(`sui move build --dump-bytecode-as-base64 --path ${contractURI}`, {
+        execSync(`sui move build --dump-bytecode-as-base64 --path ${contractURI}  --silence-warnings`, {
             encoding: 'utf-8',
         })
     );
@@ -247,19 +247,27 @@ async function publishToDevnet() {
             signature,
             options: { showEffects: true }
         });
-        console.log("Deployment successful:", result);
-        
+        console.log("Deployment successful:", result);        
         // Extract package ID more reliably by finding the created package
         const packageId = result.effects.created?.find(item => item.owner === 'Immutable')?.reference?.objectId;
         if (!packageId) {
             throw new Error("Failed to extract package ID from deployment result");
         }
         console.log("\nPackage ID:", packageId);
+        console.log("https://suiscan.xyz/"+NETWORK+"/object/"+ packageId+"/tx-blocks");
+
+        console.log("\nTransaction Digest:", result.digest);
+        console.log("https://suiscan.xyz/"+NETWORK+"/tx/"+ result.digest);
         
         // Save package ID to a file
         await fsPromises.writeFile('./packageId.txt', packageId);
-        console.log("Package ID saved to packageId.txt");
+
+
         
+
+
+        console.log("Package ID saved to packageId.txt");
+
         return result;
     } else {
         console.log("Simulation failed:", simulationResult);
