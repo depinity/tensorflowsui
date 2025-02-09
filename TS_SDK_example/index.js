@@ -5,13 +5,24 @@ import { Ed25519Keypair } from '@mysten/sui/keypairs/ed25519';
 import { fromHex } from '@mysten/bcs';
 import promptSync from 'prompt-sync';
 import ora from "ora";
+import fs from 'fs';
 
 const prompt = promptSync();
-// 0x477966c700a7c2144aa5b51b269c54d21e008f8e680b9fc9dfce9e8fac593e89
-// 0x3c9a3f9e977023eff2805f57d746e499065892c8b3b50bea4eed73312c1c7aee
+
+// Read configuration from config.txt
+const configContent = fs.readFileSync('./config.txt', 'utf8');
+const config = Object.fromEntries(
+	configContent.split('\n')
+		.filter(line => line.trim())
+		.map(line => line.split('=').map(part => part.trim()))
+);
+
+// Read package ID from packageId.txt
+const packageId = fs.readFileSync('./packageId.txt', 'utf8').trim();
+
 const network = "devnet";
-const TENSROFLOW_SUI_PACKAGE_ID = '0x3c9a3f9e977023eff2805f57d746e499065892c8b3b50bea4eed73312c1c7aee';
-const PRIVATE_KEY = "0xf5e83010b44412c64f7c48bab1ad306d4280f716318a2f6d91b59d9608fddd3e";
+const TENSROFLOW_SUI_PACKAGE_ID = packageId;
+const PRIVATE_KEY = config.PRIVATE_KEY;
 
 // 3
 // let input_mag = [0, 0, 0, 0, 0, 0, 0, 0, 0, 18, 85, 99, 17, 0, 0, 0, 3, 0, 56, 32, 0, 0, 0, 62, 93, 90, 0, 0, 0, 0, 0, 0, 99, 0, 0, 0, 90, 76, 94, 27, 0, 0, 0, 0, 0, 0, 0, 0, 0];
@@ -160,7 +171,7 @@ async function run() {
 					arguments: [
 						tx.object(SignedFixedGraph),
 						tx.object(PartialDenses),
-						tx.pure.string('dense1'),
+						tx.pure.string('dense'),
 						tx.pure.vector('u64', input_mag),
 						tx.pure.vector('u64', input_sign),
 						tx.pure.u64(1),
@@ -220,7 +231,7 @@ async function run() {
 				target: `${TENSROFLOW_SUI_PACKAGE_ID}::graph::split_chunk_finalize`,
 				arguments: [
 					final_tx.object(PartialDenses),
-					final_tx.pure.string('dense1'),
+					final_tx.pure.string('dense'),
 				],
 			})
 
@@ -231,7 +242,7 @@ async function run() {
 					res_act1[0],
 					res_act1[1],
 					res_act1[2],
-					final_tx.pure.string('dense2'),
+					final_tx.pure.string('dense_1'),
 				],
 			})
 
@@ -242,7 +253,7 @@ async function run() {
 					res_act2[0],
 					res_act2[1],
 					res_act2[2],
-					final_tx.pure.string('output'),
+					final_tx.pure.string('dense_2'),
 				],
 			})
 

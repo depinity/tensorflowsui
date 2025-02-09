@@ -7,10 +7,27 @@ import { Ed25519Keypair } from "@mysten/sui/keypairs/ed25519";
 import { Transaction } from '@mysten/sui/transactions';
 import { fromHex } from '@mysten/sui/utils';
 
-// Configuration
-const PRIVATE_KEY = "0xf5e83010b44412c64f7c48bab1ad306d4280f716318a2f6d91b59d9608fddd3e";
-const NETWORK = "devnet";
-const SCALE = 2;
+// Replace the hardcoded configuration with loading from config.txt
+const configContent = fs.readFileSync('./config.txt', 'utf-8');
+const configLines = configContent.split('\n');
+const config = {};
+
+configLines.forEach(line => {
+    // Skip empty lines and comments
+    if (line.trim() === '' || line.startsWith('#')) {
+        return;
+    }
+    if (line.includes('=')) {
+        const [key, value] = line.split('=').map(s => s.trim());
+        // Simply use the key as-is and clean the value
+        config[key] = value.replace(/['";\s]/g, '');
+    }
+});
+
+const PRIVATE_KEY = config.PRIVATE_KEY;
+const NETWORK = config.NETWORK;
+const SCALE = parseInt(config.SCALE);
+const MODEL_PATH = config.MODEL_PATH;
 
 // 1. Model processing functions
 async function loadTfjsLayersModel(tfjsFolder) {
@@ -232,11 +249,16 @@ async function publishToDevnet() {
         });
         console.log("Deployment successful:", result);
         
-        // Extract and log the package ID
-        const packageId = result.effects.created?.[0]?.reference?.objectId;
-        console.log("\n Package ID:", packageId);
-
-
+        // Extract package ID more reliably by finding the created package
+        const packageId = result.effects.created?.find(item => item.owner === 'Immutable')?.reference?.objectId;
+        if (!packageId) {
+            throw new Error("Failed to extract package ID from deployment result");
+        }
+        console.log("\nPackage ID:", packageId);
+        
+        // Save package ID to a file
+        await fsPromises.writeFile('./packageId.txt', packageId);
+        console.log("Package ID saved to packageId.txt");
         
         return result;
     } else {
@@ -249,9 +271,9 @@ async function publishToDevnet() {
 async function main() {
     try {
         // 1. Process model and generate Move code
-        const tfjsFolder = process.argv[2];
-        if (!tfjsFolder) {
-            throw new Error('Usage: node publish_final.js <tfjs_model_folder>');
+        const tfjsFolder = MODEL_PATH;
+        if (!fs.existsSync(tfjsFolder)) {
+            throw new Error(`Model folder not found: ${tfjsFolder}`);
         }
 
         console.log("1. Processing TensorFlow.js model...");
