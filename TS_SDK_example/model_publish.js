@@ -38,7 +38,7 @@ async function loadTfjsLayersModel(tfjsFolder) {
         const modelJson = JSON.parse(modelJsonStr);
 
         const modelTopology = modelJson.modelTopology;
-        const weightsManifest = modelJson.weightsManifest; // array
+        const weightsManifest = modelJson.weightsManifest; 
 
         const weightDataMap = {}; // { weightName: Float32Array }
 
@@ -261,11 +261,6 @@ async function publishToDevnet() {
         
         // Save package ID to a file
         await fsPromises.writeFile('./packageId.txt', packageId);
-
-
-        
-
-
         console.log("Package ID saved to packageId.txt");
 
         return result;
@@ -289,7 +284,6 @@ async function main() {
         const convertedWeights = convertWeightsToFixed(modelTopology, weightDataMap, SCALE);
         const moveCode = generateMoveCode(convertedWeights, SCALE);
 
-        // Changed path from './sui' to './forpublish'
         await fsPromises.mkdir('./forpublish/sources', { recursive: true });
         await fsPromises.writeFile('./forpublish/sources/model.move', moveCode);
         console.log("Move code generated and saved to ./forpublish/sources/model.move");
@@ -298,7 +292,7 @@ async function main() {
         console.log("\n2. Generating Move.toml...");
         await generateMoveToml("tensorflowsui");
 
-        // 3. Publish to devnet
+        // 3. Publish to onchain
         console.log("\n3. Publishing to devnet...");
         const result = await publishToDevnet();
         console.log("Deployment completed successfully!");
