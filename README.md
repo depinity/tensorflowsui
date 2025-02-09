@@ -210,6 +210,44 @@ This hybrid approach enables:
 
 ---
 
+## Future Roadmap
+
+<p align="center">
+  <img src="futures.JPG" alt="Future Roadmap" width="600"/>
+</p>
+
+Our development roadmap outlines planned expansions across three key areas:
+
+### SDK
+- TypeScript support (Available)
+- Python integration
+- Auto-publish capabilities 
+- Adjustable calling mechanisms
+
+### Runtime
+- Floating & negative weights support
+- Dense (Linear) Layer implementation
+- ReLU Activation
+- Future additions:
+  - More activation functions
+  - Normalization layers
+  - CNN support
+
+### Application
+- Ownership management
+- Monetization features
+- Smart contract connectivity
+- Platform management tools
+- Planned integrations:
+  - Transformer architectures
+  - Matrix multiplication optimizations
+  - Advanced mapping tools
+  - Mobile pre-trained models
+  - Gradient/backprop support
+  - Transfer learning capabilities
+
+---
+
 We want to co-develop with those who share our vision.  
 Feel free to reach out at any time via the link or email below:
 
