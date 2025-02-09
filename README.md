@@ -36,13 +36,38 @@ The `@tensorflowSui_lib` provides core functionality for interpreting and execut
 ### Core Components
 
 - **tensor.move**  
-  Implements tensor structures and computation functions with floating-point and signed number support. Provides fundamental arithmetic operations optimized for AI computations.
+  - Implements tensor operations with fixed-point arithmetic
+  - Handles signed number computations
+  - Supports multi-dimensional tensor operations
+  - Provides optimized matrix multiplication
+  - Includes batch processing capabilities
 
 - **graph.move**  
-  Handles AI model structure interpretation, including layers, activations, weights, and operations. Currently supports:
-  - Dense layers
-  - ReLU activation
-  - Basic model architectures (with ongoing development for more complex deep learning models)
+  Handles AI model structure interpretation, including:
+  - Dense (fully connected) layers
+  - ReLU and Softmax activations
+  - Batch normalization
+  - Model weight management
+  - Partial computation support for gas optimization
+
+### Implementation Features
+
+- **Fixed-point Precision**
+  - Configurable scale parameter for numerical accuracy
+  - Prevents floating-point inconsistencies on-chain
+  - Maintains computational stability
+
+- **Gas Optimization**
+  - Chunked computation support
+  - Batch processing capabilities
+  - Memory-efficient tensor operations
+  - Partial state management
+
+- **Safety Measures**
+  - Input validation and dimension checking
+  - Overflow prevention
+  - Scale consistency verification
+  - Memory safety through Move's ownership system
 
 ### Inference Options
 
@@ -105,7 +130,7 @@ This project aims to establish a robust framework for maintaining digital proven
 
 The system consists of several key components working together:
 
-### 1. Web3.0 Layer
+### 1. Web3.0 Layer (./warlus_with_go, ./tensorflowSui_lib)
 - Handles blockchain interactions and smart contract execution
 - Manages digital signatures and provenance certification
 - Provides verifiable execution receipts
@@ -116,7 +141,7 @@ cd warlus_with_go
 go run .
 ```
 
-### 2. Model Publisher (example)
+### 2. Model Publisher (./Model_publisher)
 - Deploys AI models to the blockchain
 - Manages model versioning and updates
 - Handles model weight distribution
@@ -154,7 +179,7 @@ The publisher will:
 - Save the package ID for future reference
 
 
-### 3. Model User
+### 3. Model User (./Model_user)
 - Performs model inference
 - Verifies execution results
 - Interacts with the blockchain for provenance tracking
@@ -207,7 +232,7 @@ For using models from SUI packageId:
    - Provides verifiable proof of computation
    - Access results via Walrus Explorer: `https://walruscan.com/testnet/account/{blobId}`
 
-### 4. Atoma Framework
+### 4. Atoma Framework (./atoma)
 - Handles input data generation and preprocessing
 - Converts traditional ML inputs to blockchain-compatible format
 - Manages data transformation pipelines
@@ -233,7 +258,6 @@ Tensorflowsui supports both on-chain and off-chain inference through a hybrid ar
      - Complex deep learning architectures
      - Resource-intensive tasks
 
-### Atoma Input Generation
 
 The `atoma` directory provides tools for generating model inputs using Atoma Network:
 
@@ -254,7 +278,6 @@ This hybrid approach enables:
 - Flexible deployment options based on model size and requirements
 
 ---
-
 
 
 ## Key Features
@@ -278,8 +301,6 @@ This hybrid approach enables:
    - Move language implementation
    - Fixed-point arithmetic for deterministic computation
    - Gas-optimized operations
-
-## Technical Implementation
 
 
 
