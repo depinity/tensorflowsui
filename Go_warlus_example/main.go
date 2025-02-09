@@ -32,7 +32,13 @@ type StoreRes struct {
 	BlobID string `json:"blobId"`
 }
 
+type UploadedTrainSetRes struct {
+	Status string `json:"status"`
+	BlobID string `json:"blobId"`
+}
+
 var storeInputRes StoreInputRes
+var uploadTrainSetRes UploadedTrainSetRes
 
 // "/get" Handler Func
 func handleGetInput(w http.ResponseWriter, r *http.Request) {
@@ -40,6 +46,17 @@ func handleGetInput(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
 		json.NewEncoder(w).Encode(storeInputRes) // JSON Resp
+	default:
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+	}
+}
+
+// "/train-set" Handler Func
+func handleGetTrainSetBlobID(w http.ResponseWriter, r *http.Request) {
+
+	switch r.Method {
+	case http.MethodGet:
+		json.NewEncoder(w).Encode(uploadTrainSetRes) // JSON Resp
 	default:
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 	}
@@ -175,6 +192,33 @@ func initInput() (StoreInputRes, error) {
 	return storeInputRes, nil
 }
 
+func uploadTrainSet() (UploadedTrainSetRes, error) {
+
+	wClient := walrus.NewClient(
+		walrus.WithAggregatorURLs([]string{"https://aggregator.walrus-testnet.walrus.space"}),
+		walrus.WithPublisherURLs([]string{"https://publisher.walrus-testnet.walrus.space"}),
+	)
+
+	uploadedFile, err := wClient.StoreFile("./mnist_selected.json", &walrus.StoreOptions{Epochs: 5})
+	if err != nil {
+		log.Fatalf("Error storing file: %v", err)
+		return UploadedTrainSetRes{}, err
+	}
+	fmt.Printf("Stored file blob ID: %s\n", uploadedFile)
+
+	err = wClient.ReadToFile(uploadedFile.Blob.BlobID, "./read_mnist_selected.json", nil)
+	if err != nil {
+		log.Fatalf("Error reading file: %v", err)
+		return UploadedTrainSetRes{}, err
+	}
+	fmt.Println("File retrieved successfully")
+
+	return UploadedTrainSetRes{
+		Status: "success",
+		BlobID: uploadedFile.Blob.BlobID,
+	}, nil
+}
+
 func main() {
 
 	_storeInputRes, err := initInput()
@@ -184,8 +228,16 @@ func main() {
 	}
 	storeInputRes = _storeInputRes
 
+	_uploadedTrainSetRes, err := uploadTrainSet()
+	if err != nil {
+		fmt.Println("Failed to upload train set")
+		return
+	}
+	uploadTrainSetRes = _uploadedTrainSetRes
+
 	// Handler
 	http.HandleFunc("/get", handleGetInput)
+	http.HandleFunc("/train-set", handleGetTrainSetBlobID)
 	http.HandleFunc("/store", handleStore)
 
 	fmt.Println("Server is running...")
