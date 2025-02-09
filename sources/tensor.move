@@ -1,3 +1,7 @@
+// Copyright (c) OpenGraph, Inc.
+// SPDX-License-Identifier: Apache-2.0
+
+/// @title Fully Onchain Neural Network Inference Implementation
 module tensorflowsui::tensor {
 
     use std::string;
@@ -39,7 +43,6 @@ module tensorflowsui::tensor {
     public fun get_sign(t: &SignedFixedTensor): vector<u64> {
         t.sign
     }
-
 
     public fun num_elements(shape : &vector<u64>) : u64 {
 
@@ -150,9 +153,6 @@ fun u64_to_bytes(num: u64): vector<u8> {
     digits
 }
 
-
-
-
 public fun to_string(tensor: &SignedFixedTensor): vector<u8> {
     let len = vector::length(&tensor.magnitude);
 
@@ -192,7 +192,6 @@ public fun to_string(tensor: &SignedFixedTensor): vector<u8> {
 
     bytes
 }
-
 
     public fun from_input(
         shape: vector<u64>,
@@ -331,7 +330,6 @@ public fun divide(a: &SignedFixedTensor, b: &SignedFixedTensor): SignedFixedTens
         create_signed_fixed(copy a.shape, out_mag, out_sign, s)
     }
 
-
     fun is_a_greater_than_b(a_sign: u64, a_mag: u64,
                             b_sign: u64, b_mag: u64): bool {
         
@@ -403,6 +401,5 @@ public fun divide(a: &SignedFixedTensor, b: &SignedFixedTensor): SignedFixedTens
         };
         max_index
     }
-
 
 }
