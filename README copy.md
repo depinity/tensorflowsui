@@ -78,49 +78,21 @@ Choose the inference option or combination that best matches your requirements f
 
 ---
 
-## SUI AI Typoon Hackathon
-
-
-<p align="center">
-  <img src="digital_provenance.JPG" alt="digital provenance" width="600"/>
-</p>
 
 
 
 
-# Digital Provenance of Data Assets and AI Model
 
-A decentralized system for ensuring data provenance and model integrity in AI/ML workflows using blockchain technology.
+## Usage Guide
 
-## Vision
-
-This project aims to establish a robust framework for maintaining digital provenance of both data assets and AI models in a decentralized environment. By leveraging blockchain technology, specifically the Sui blockchain, we ensure:
-
-- Transparent tracking of data lineage
-- Verifiable model execution
-- Immutable record of training/test datasets
-- Certified model inference results
-
-## System Architecture
-
-The system consists of several key components working together:
-
-### 1. Web3.0 Layer
-- Handles blockchain interactions and smart contract execution
-- Manages digital signatures and provenance certification
-- Provides verifiable execution receipts
-
+### 1. warlus with Go
 Start the Go server that handles Walrus interactions:
 ```bash
 cd warlus_with_go
 go run .
 ```
 
-### 2. Model Publisher (example)
-- Deploys AI models to the blockchain
-- Manages model versioning and updates
-- Handles model weight distribution
-
+### 2. Model Publisher
 The Model Publisher simplifies the process of deploying Web2 AI models to the Sui blockchain:
 
 1. **Prepare Your Model**
@@ -153,13 +125,7 @@ The publisher will:
 - Deploy to the specified Sui network
 - Save the package ID for future reference
 
-
 ### 3. Model User
-- Performs model inference
-- Verifies execution results
-- Interacts with the blockchain for provenance tracking
-
-
 The Model User component provides a CLI interface for interacting with deployed models and performing inference:
 For using models from SUI packageId:
 - Downloads input data from Walrus with digital provenance
@@ -207,13 +173,7 @@ For using models from SUI packageId:
    - Provides verifiable proof of computation
    - Access results via Walrus Explorer: `https://walruscan.com/testnet/account/{blobId}`
 
-### 4. Atoma Framework
-- Handles input data generation and preprocessing
-- Converts traditional ML inputs to blockchain-compatible format
-- Manages data transformation pipelines
-
-
-Hybrid Inference Architecture
+## Hybrid Inference Architecture
 
 Tensorflowsui supports both on-chain and off-chain inference through a hybrid architecture:
 
@@ -255,53 +215,6 @@ This hybrid approach enables:
 
 ---
 
-
-
-## Key Features
-
-1. **Data Provenance**
-   - Track data lineage from source to inference
-   - Verify data integrity at each step
-   - Maintain immutable audit trails
-
-2. **Model Integrity**
-   - On-chain model execution
-   - Verifiable computation results
-   - Transparent model updates
-
-3. **Decentralized Storage**
-   - Distributed data storage
-   - Content-addressed blob storage
-   - Efficient data retrieval
-
-4. **Smart Contract Integration**
-   - Move language implementation
-   - Fixed-point arithmetic for deterministic computation
-   - Gas-optimized operations
-
-## Technical Implementation
-
-
-
-
-## Ecosystem Benefits
-
-1. **For Data Scientists**
-   - Verifiable training datasets
-   - Transparent model development
-   - Reproducible results
-
-2. **For Model Users**
-   - Trusted inference results
-   - Verified model lineage
-   - Transparent execution
-
-3. **For Stakeholders**
-   - Auditable AI systems
-   - Compliance tracking
-   - Risk management
-
-
 ## Future Roadmap
 
 <p align="center">
@@ -340,10 +253,6 @@ Our development roadmap outlines planned expansions across three key areas:
 
 ---
 
-
-
-## Contributing
-
 We want to co-develop with those who share our vision.  
 Feel free to reach out at any time via the link or email below:
 
@@ -351,10 +260,6 @@ Feel free to reach out at any time via the link or email below:
 - **Email**: [gr0442@gmail.com](mailto:gr0442@gmail.com)
 
 Junhwan Kwon, Ph.D.
-
-## License
-
-This project is licensed under the Apache License 2.0 - see the LICENSE file for details.
 
 
 
