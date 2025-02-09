@@ -24,7 +24,6 @@ const network = config.NETWORK;
 const TENSROFLOW_SUI_PACKAGE_ID = packageId;
 const PRIVATE_KEY = config.PRIVATE_KEY;
 
-// example inputs
 // 3
 // let input_mag = [0, 0, 0, 0, 0, 0, 0, 0, 0, 18, 85, 99, 17, 0, 0, 0, 3, 0, 56, 32, 0, 0, 0, 62, 93, 90, 0, 0, 0, 0, 0, 0, 99, 0, 0, 0, 90, 76, 94, 27, 0, 0, 0, 0, 0, 0, 0, 0, 0];
 // let input_sign  = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
@@ -107,17 +106,6 @@ async function run() {
 	let partialDenses_digest_arr = [];
 	let version_arr = [];
 
-	let trainSetBlobID = await getTrainSetBlobID();
-	console.log("Training set of the model to be used", trainSetBlobID["blobId"])
-	console.log("");
-
-	let input = await getInput();
-	input_mag = input["inputMag"];
-	input_sign = input["inputSign"];
-
-	console.log(input_mag)
-	console.log(input_sign)
-
 	while (true) {
 		const command = prompt(">> Please enter your command : ");
 
@@ -172,10 +160,16 @@ async function run() {
 			console.log("");
 			break;
 			
-		case "run":
-			console.log('\nProcessing 16-partitioned Dense layers... \n');
+		case "load input":
+			let input = await getInput();
+			input_mag = input["inputMag"];
+			input_sign = input["inputSign"];
+			break;
 
-			let totalTasks = 16
+		case "run":
+			console.log('\nInference start... \n');
+
+			let totalTasks = 17
 			let spinner;
 			
 			for (let i = 0; i<totalTasks; i++) {
@@ -184,151 +178,153 @@ async function run() {
 				const emptyBar = '░'.repeat(totalTasks - i - 1); 
 				const progressBar = filledBar + emptyBar; // total progress bar
 				
-				let tx = new Transaction();
+				if (i == totalTasks-1) {
 
-				if (!tx.gas) {
-					console.error("Gas object is not set correctly");
-				}
-				
-				tx.moveCall({
-					target: `${TENSROFLOW_SUI_PACKAGE_ID}::graph::split_chunk_compute`,
-					arguments: [
-						tx.object(SignedFixedGraph),
-						tx.object(PartialDenses),
-						tx.pure.string('dense'),
-						tx.pure.vector('u64', input_mag),
-						tx.pure.vector('u64', input_sign),
-						tx.pure.u64(1),
-						tx.pure.u64(i),
-						tx.pure.u64(i),
-					],
-				})
+					let final_tx = new Transaction();
 
-				keypair = Ed25519Keypair.fromSecretKey(fromHex(PRIVATE_KEY));
-				result = await client.signAndExecuteTransaction({
-					transaction: tx,
-					signer: keypair,
-					options: {
-						showEffects: true,
-						showEvents: true,
-						showObjectChanges: true,
+					if (!final_tx.gas) {
+						console.error("Gas object is not set correctly");
 					}
-				})
 
-				spinner = ora("Processing task... ").start();
-				console.log(progressBar + ` ${i+1}/${totalTasks}`);
+					let res_act1 = final_tx.moveCall({
+						target: `${TENSROFLOW_SUI_PACKAGE_ID}::graph::split_chunk_finalize`,
+						arguments: [
+							final_tx.object(PartialDenses),
+							final_tx.pure.string('dense'),
+						],
+					})
 
-				for (let i=0; i < result['objectChanges'].length; i++) {
+					let res_act2 = final_tx.moveCall({
+						target: `${TENSROFLOW_SUI_PACKAGE_ID}::graph::ptb_layer`,
+						arguments: [
+							final_tx.object(SignedFixedGraph),
+							res_act1[0],
+							res_act1[1],
+							res_act1[2],
+							final_tx.pure.string('dense_1'),
+						],
+					})
 
-					let parts;
-					let exist;
+					final_tx.moveCall({
+						target: `${TENSROFLOW_SUI_PACKAGE_ID}::graph::ptb_layer_arg_max`,
+						arguments: [
+							final_tx.object(SignedFixedGraph),
+							res_act2[0],
+							res_act2[1],
+							res_act2[2],
+							final_tx.pure.string('dense_2'),
+						],
+					})
+
+					keypair = Ed25519Keypair.fromSecretKey(fromHex(PRIVATE_KEY));
+					result = await client.signAndExecuteTransaction({
+						transaction: final_tx,
+						signer: keypair,
+						options: {
+							showEffects: true,
+							showEvents: true,
+							showObjectChanges: true,
+						}
+					})
+
+					spinner = ora("Processing task... ").start();
+					console.log(progressBar + ` ${i+1}/${totalTasks}`);
+
+					for (let i=0; i < result['objectChanges'].length; i++) {
+
+						let parts;
+						let exist;
+						
+						parts = result['objectChanges'][i]["objectType"].split("::");
+						exist = parts.some(part => part.includes("PartialDenses"));
+						if (exist == true) {
+							partialDenses_digest_arr.push(result['objectChanges'][i]["digest"]);
+							version_arr.push(result['objectChanges'][i]["version"]);
+						}
+					}
 					
-					parts = result['objectChanges'][i]["objectType"].split("::");
-					exist = parts.some(part => part.includes("PartialDenses"));
-					if (exist == true) {
-						partialDenses_digest_arr.push(result['objectChanges'][i]["digest"]);
-						version_arr.push(result['objectChanges'][i]["version"]);
+					tx_digest_arr.push(result.digest)
+					console.log("\nTx Digest:", result.digest)
+
+					console.log("Gas Used: ", Number(result.effects.gasUsed.computationCost) + Number(result.effects.gasUsed.nonRefundableStorageFee));
+					totalGasUsage += Number(result.effects.gasUsed.computationCost) + Number(result.effects.gasUsed.nonRefundableStorageFee)
+
+					console.log("\nresult:", result.events[0].parsedJson['value']);
+					console.log("Total Gas Used (SUI):", totalGasUsage / Number(MIST_PER_SUI))
+
+					const data = await store(tx_digest_arr, partialDenses_digest_arr, version_arr);
+					if (data.status === "success") {
+						console.log("\n***** Walrus Store Success *****");
+						console.log("BlobID:", data.blobId);
+						console.log("");
 					}
-				}
-				
-				tx_digest_arr.push(result.digest)
-				console.log("Tx Digest:", result.digest)
 
-				console.log("Gas Used:", Number(result.effects.gasUsed.computationCost) + Number(result.effects.gasUsed.nonRefundableStorageFee));
-				console.log("");
-				totalGasUsage += Number(result.effects.gasUsed.computationCost) + Number(result.effects.gasUsed.nonRefundableStorageFee)
-			}
+					spinner.succeed("✅ Task completed!");
+					console.log("");
 
-			spinner.succeed("✅ Task completed!");
-			console.log("");
-			break;
-			
-		case "finalize":
-			console.log('\nFinalize... \n');
-			let final_tx = new Transaction();
+					totalGasUsage = 0;
+					tx_digest_arr = [];
+					partialDenses_digest_arr = [];
+					version_arr = [];
+				} else {
 
-			if (!final_tx.gas) {
-				console.error("Gas object is not set correctly");
-			}
+					let tx = new Transaction();
 
-			let res_act1 = final_tx.moveCall({
-				target: `${TENSROFLOW_SUI_PACKAGE_ID}::graph::split_chunk_finalize`,
-				arguments: [
-					final_tx.object(PartialDenses),
-					final_tx.pure.string('dense'),
-				],
-			})
+					if (!tx.gas) {
+						console.error("Gas object is not set correctly");
+					}
+					
+					tx.moveCall({
+						target: `${TENSROFLOW_SUI_PACKAGE_ID}::graph::split_chunk_compute`,
+						arguments: [
+							tx.object(SignedFixedGraph),
+							tx.object(PartialDenses),
+							tx.pure.string('dense'),
+							tx.pure.vector('u64', input_mag),
+							tx.pure.vector('u64', input_sign),
+							tx.pure.u64(1),
+							tx.pure.u64(i),
+							tx.pure.u64(i),
+						],
+					})
 
-			let res_act2 = final_tx.moveCall({
-				target: `${TENSROFLOW_SUI_PACKAGE_ID}::graph::ptb_layer`,
-				arguments: [
-					final_tx.object(SignedFixedGraph),
-					res_act1[0],
-					res_act1[1],
-					res_act1[2],
-					final_tx.pure.string('dense_1'),
-				],
-			})
+					keypair = Ed25519Keypair.fromSecretKey(fromHex(PRIVATE_KEY));
+					result = await client.signAndExecuteTransaction({
+						transaction: tx,
+						signer: keypair,
+						options: {
+							showEffects: true,
+							showEvents: true,
+							showObjectChanges: true,
+						}
+					})
 
-			final_tx.moveCall({
-				target: `${TENSROFLOW_SUI_PACKAGE_ID}::graph::ptb_layer_arg_max`,
-				arguments: [
-					final_tx.object(SignedFixedGraph),
-					res_act2[0],
-					res_act2[1],
-					res_act2[2],
-					final_tx.pure.string('dense_2'),
-				],
-			})
+					spinner = ora("Processing task... ").start();
+					console.log(progressBar + ` ${i+1}/${totalTasks}`);
 
+					for (let i=0; i < result['objectChanges'].length; i++) {
 
+						let parts;
+						let exist;
+						
+						parts = result['objectChanges'][i]["objectType"].split("::");
+						exist = parts.some(part => part.includes("PartialDenses"));
+						if (exist == true) {
+							partialDenses_digest_arr.push(result['objectChanges'][i]["digest"]);
+							version_arr.push(result['objectChanges'][i]["version"]);
+						}
+					}
+					
+					tx_digest_arr.push(result.digest)
+					console.log("Tx Digest:", result.digest)
 
-			keypair = Ed25519Keypair.fromSecretKey(fromHex(PRIVATE_KEY));
-			result = await client.signAndExecuteTransaction({
-				transaction: final_tx,
-				signer: keypair,
-				options: {
-					showEffects: true,
-					showEvents: true,
-					showObjectChanges: true,
-				}
-			})
-
-			for (let i=0; i < result['objectChanges'].length; i++) {
-
-				let parts;
-				let exist;
-				
-				parts = result['objectChanges'][i]["objectType"].split("::");
-				exist = parts.some(part => part.includes("PartialDenses"));
-				if (exist == true) {
-					partialDenses_digest_arr.push(result['objectChanges'][i]["digest"]);
-					version_arr.push(result['objectChanges'][i]["version"]);
+					console.log("Gas Used:", Number(result.effects.gasUsed.computationCost) + Number(result.effects.gasUsed.nonRefundableStorageFee));
+					console.log("");
+					totalGasUsage += Number(result.effects.gasUsed.computationCost) + Number(result.effects.gasUsed.nonRefundableStorageFee)
+					
 				}
 			}
 			
-			tx_digest_arr.push(result.digest)
-			console.log("\nTx Digest:", result.digest)
-
-			console.log("Gas Used: ", Number(result.effects.gasUsed.computationCost) + Number(result.effects.gasUsed.nonRefundableStorageFee));
-			totalGasUsage += Number(result.effects.gasUsed.computationCost) + Number(result.effects.gasUsed.nonRefundableStorageFee)
-
-			console.log("\nresult:", result.events[0].parsedJson['value']);
-			console.log("Total Gas Used (SUI):", totalGasUsage / Number(MIST_PER_SUI))
-
-			const data = await store(tx_digest_arr, partialDenses_digest_arr, version_arr);
-			if (data.status === "success") {
-				console.log("\n***** Walrus Store Success *****");
-				console.log("BlobID:", data.blobId);
-				console.log("https://walruscan.com/testnet/account/"+data.blobId);
-				console.log("");
-			}
-
-			totalGasUsage = 0;
-			tx_digest_arr = [];
-			partialDenses_digest_arr = [];
-			version_arr = [];
-
 			break;
 			
 		default:

@@ -88,24 +88,125 @@ go run .
 ```
 
 ### 2. Model Publisher
-For publishing Web2 models to the Sui blockchain using tensorflowSui library:
+The Model Publisher simplifies the process of deploying Web2 AI models to the Sui blockchain:
 
-1. If you have a .h5 model, convert it to TensorFlow.js format first:
-   - Visit: https://www.tensorflow.org/js/guide/conversion?hl=en
-   - Follow the conversion guide for your specific model type
+1. **Prepare Your Model**
+   - Convert your .h5 model to TensorFlow.js format:
+     ```bash
+     tensorflowjs_converter --input_format=keras /path/to/model.h5 /path/to/tfjs_model
+     ```
+     here ! https://www.tensorflow.org/js/guide/conversion?hl=en
+   - Place the converted model in the `web2_models` directory
 
-2. Use the Model Publisher to deploy your converted model with:
-   - Fully interpreted model graphs
-   - Operations and weights with signed 2-point floating
-   - Blockchain deployment configurations
+2. **Configure Publishing**
+   - Update `config.txt` with your settings:
+     ```ini
+     PRIVATE_KEY=your_private_key
+     NETWORK=devnet  # or testnet/mainnet
+     SCALE=2         # decimal precision for fixed-point conversion
+     MODEL_PATH=./web2_models
+     ```
+
+3. **Run the Publisher**
+   ```bash
+   cd Model_publisher
+   node model_publish.js
+   ```
+
+The publisher will:
+- Load and process your TensorFlow.js model
+- Convert weights to fixed-point representation
+- Auto-generate Move smart contracts
+- Deploy to the specified Sui network
+- Save the package ID for future reference
 
 ### 3. Model User
+The Model User component provides a CLI interface for interacting with deployed models and performing inference:
 For using models from SUI packageId:
 - Downloads input data from Walrus with digital provenance
 - Performs fully on-chain inference
 - Provides transaction verification
 
-Note: Python SDK is currently under development.
+1. **Setup**
+   ```bash
+   cd Model_user
+   npm install
+   ```
+
+2. **Configure**
+   - The package ID from the published model will be automatically loaded from `packageId.txt`
+   - Update `config.txt` with your settings:
+     ```ini
+     PRIVATE_KEY=your_private_key
+     NETWORK=devnet  # or testnet/mainnet
+     ```
+
+3. **Run Inference**
+   ```bash
+   node inference.js
+   ```
+
+   The CLI supports three commands:
+   - `init`: Initialize the model state
+   - `load input`: Load input data from the Walrus server
+   - `run`: Execute the inference process mixed inference options (split transaction and PTB)
+
+4. **Hybrid Inference Process**
+   The implementation uses a hybrid approach combining two inference methods:
+   - **Split Transaction** for the input layer → layer 1
+     - Divides computation into 16 partitions for efficiency
+     - Provides progress visualization
+     - Optimizes gas costs for heavy computations
+   
+   - **PTB (Programable Transaction Block)** for layers 2 → 3 → output
+     - Maintains atomic execution
+     - Processes remaining layers in a single transaction
+     - Outputs final classification result
+
+5. **Walrus Integration**
+   - All transaction trajectories are automatically uploaded to Walrus
+   - Provides verifiable proof of computation
+   - Access results via Walrus Explorer: `https://walruscan.com/testnet/account/{blobId}`
+
+## Hybrid Inference Architecture
+
+Tensorflowsui supports both on-chain and off-chain inference through a hybrid architecture:
+
+1. **On-Chain Inference (Small Models)**
+   - Fully decentralized execution for lightweight models
+   - Complete transparency and auditability
+   - Suitable for:
+     - Classification tasks
+     - Simple neural networks
+     - Time-critical applications
+
+2. **Atoma Network Integration (Large Models)**
+   - Leverages Atoma Network for large model inference
+   - Maintains connection to Sui blockchain for verification
+   - Supports models like:
+     - LLMs (e.g., Llama-3.3-70B)
+     - Complex deep learning architectures
+     - Resource-intensive tasks
+
+### Atoma Input Generation
+
+The `atoma` directory provides tools for generating model inputs using Atoma Network:
+
+```bash
+cd atoma
+npm install
+node input_data_generation_with_atoma.js
+```
+
+Key components:
+- `input_data_generation_with_atoma.js`: Generates inputs using Atoma's LLM capabilities
+- `convert_data_for_web3_input.js`: Converts generated data for on-chain use
+- `atoma_converted.json`: Stores processed input data
+
+This hybrid approach enables:
+- Scalable inference for both small and large models
+- Decentralized verification of model outputs
+- Flexible deployment options based on model size and requirements
 
 ---
 
