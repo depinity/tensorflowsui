@@ -6,50 +6,73 @@ function flattenImages(directory) {
     try {
         const files = fs.readdirSync(directory);
         
-        // Filter and sort files with numbers 0-9
-        const numberedFiles = files
-            .filter(file => /^[0-9]\.png$/.test(file))
-            .sort((a, b) => {
-                const numA = parseInt(a);
-                const numB = parseInt(b);
-                return numA - numB;
-            });
-
-        // Process each file
-        const flattened = numberedFiles.map(file => {
-            const filePath = path.join(directory, file);
-            const data = fs.readFileSync(filePath);
-            const png = PNG.sync.read(data);
+        // Filter PNG files and group by prompt and label
+        const fileGroups = new Map();
+        files.forEach(file => {
+            if (!file.endsWith('.png')) return;
             
-            // Flatten the image data (RGBA format) into grayscale values
-            const pixels = [];
-            for (let y = 0; y < png.height; y++) {
-                for (let x = 0; x < png.width; x++) {
-                    const idx = (png.width * y + x) << 2;
-                    // Using red channel as grayscale value (assuming grayscale image)
-                    pixels.push(png.data[idx]);
-                }
+            const match = file.match(/^(.+?)_(\d+)_(\d+)\.png$/);
+            if (!match) return;
+            
+            const [_, prompt, label, timestamp] = match;
+            const key = `${prompt}_${label}`;
+            
+            if (!fileGroups.has(key)) {
+                fileGroups.set(key, []);
             }
-            return pixels;
+            fileGroups.get(key).push({
+                file,
+                prompt,
+                label: parseInt(label),
+                timestamp: parseInt(timestamp)
+            });
         });
 
-        // Format the output as a string with numbered arrays
-        const formattedOutput = flattened
-            .map((pixels, index) => `${index}: [${pixels.join(', ')}]`)
-            .join(',\n');
+        // Process all groups into a single result array
+        const results = [];
+        
+        for (const [_, files] of fileGroups) {
+            // Sort files by timestamp
+            files.sort((a, b) => a.timestamp - b.timestamp);
+            
+            // Get prompt and label from first file (they're same for the group)
+            const {prompt, label} = files[0];
+            
+            // Process each file in the group
+            const flattened = files.map(({file}) => {
+                const filePath = path.join(directory, file);
+                const data = fs.readFileSync(filePath);
+                const png = PNG.sync.read(data);
+                
+                // Flatten the image data (RGBA format) into grayscale values
+                const pixels = [];
+                for (let y = 0; y < png.height; y++) {
+                    for (let x = 0; x < png.width; x++) {
+                        const idx = (png.width * y + x) << 2;
+                        pixels.push(png.data[idx]);
+                    }
+                }
+                return pixels;
+            });
 
-        // Write to output file
-        const outputPath = path.join(directory, 'flattened_output.txt');
-        fs.writeFileSync(outputPath, formattedOutput);
+            // Add to results array
+            results.push({
+                prompt,
+                label,
+                flatten: flattened
+            });
+        }
 
-        console.log(`Processed ${numberedFiles.length} files and saved to flattened_output.txt`);
-        return flattened;
+        // Write the JSON output
+        const outputPath = path.join(directory, 'flattened_results.json');
+        fs.writeFileSync(outputPath, JSON.stringify(results, null, 2));
+        
+        console.log(`Processed ${results.length} groups and saved to flattened_results.json`);
     } catch (error) {
         console.error('Error processing images:', error);
-        return [];
     }
 }
 
 // Usage: provide the directory path as argument or use current directory
-const targetDir = process.argv[2] || './example';
+const targetDir = process.argv[2] || './atoma_number';
 flattenImages(targetDir);
