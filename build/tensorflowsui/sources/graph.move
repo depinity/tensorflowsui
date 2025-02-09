@@ -646,7 +646,7 @@ module tensorflowsui::graph {
     //
     //////////////////////////////////////////////////////////////////////////////
 
-    entry public fun ptb_chunk(
+    entry public fun split_chunk_compute(
         graph_obj: &SignedFixedGraph,
         pd: &mut PartialDenses,
         partial_name: vector<u8>,
@@ -666,7 +666,7 @@ module tensorflowsui::graph {
 
     }
 
-    entry public fun ptb_finalize(
+    entry public fun split_chunk_finalize(
             pd: &mut PartialDenses,
     partial_name: vector<u8>
 ): (vector<u64>, vector<u64>, u64) {
@@ -691,7 +691,7 @@ module tensorflowsui::graph {
     (results_mag, results_sign, s)
 }
 
-    entry public fun ptb_graph(graph: &SignedFixedGraph,
+    entry public fun ptb_layer(graph: &SignedFixedGraph,
         input_magnitude: vector<u64>,input_sign: vector<u64>,scale: u64, name: vector<u8>
         ) : (vector<u64>, vector<u64>, u64){
         let layer = get_layer_signed_fixed(graph, name);
@@ -710,7 +710,7 @@ module tensorflowsui::graph {
         (results_mag, results_sign, scale)
     }
 
-    entry public fun ptb_graph_finalize(graph: &SignedFixedGraph,
+    entry public fun ptb_layer_arg_max(graph: &SignedFixedGraph,
         input_magnitude: vector<u64>,input_sign: vector<u64>,scale: u64, name: vector<u8>
         ) : u64{
         let layer = get_layer_signed_fixed(graph, name);

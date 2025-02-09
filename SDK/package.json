@@ -1,0 +1,18 @@
+{
+  "name": "ts-sdk-sui",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "@mysten/sui": "^0.0.0-experimental-20250117185912",
+    "ora": "^8.2.0",
+    "prompt-sync": "^4.2.0"
+  }
+}
