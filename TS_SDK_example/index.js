@@ -41,8 +41,10 @@ const PRIVATE_KEY = config.PRIVATE_KEY;
 // let input_sign  = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
 
 // 6
-let input_mag = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 79, 44, 0, 0, 0, 0, 4, 89, 0, 0, 0, 0, 0, 59, 92, 43, 0, 0, 0, 0, 49, 89, 90, 30, 0, 0, 0, 0, 61, 81, 0, 0, 0, 0, 0, 0, 0, 0, 0];
-let input_sign  = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+// let input_mag = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 79, 44, 0, 0, 0, 0, 4, 89, 0, 0, 0, 0, 0, 59, 92, 43, 0, 0, 0, 0, 49, 89, 90, 30, 0, 0, 0, 0, 61, 81, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+// let input_sign  = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+let input_mag = [];
+let input_sign = [];
 
 const rpcUrl = getFullnodeUrl(network);
 const client = new SuiClient({ url: rpcUrl });
@@ -56,9 +58,21 @@ if (!PRIVATE_KEY) {
 	console.error("Please provide a PRIVATE_KEY in .env file");
 }
 
-async function get() {
+async function getInput() {
 	try {
 		const response = await fetch('http://localhost:8083/get');
+		const data = await response.json();
+		console.log(data);
+		return data;
+	} catch (error) {
+		console.error('API Call Err:', error)
+		return "";
+	}
+}
+
+async function getTrainSetBlobID() {
+	try {
+		const response = await fetch('http://localhost:8083/train-set');
 		const data = await response.json();
 		console.log(data);
 		return data;
@@ -92,7 +106,16 @@ async function run() {
 	let partialDenses_digest_arr = [];
 	let version_arr = [];
 
-	let input = await get();
+	let trainSetBlobID = await getTrainSetBlobID();
+	console.log("Training set of the model to be used", trainSetBlobID["blobId"])
+	console.log("");
+
+	let input = await getInput();
+	input_mag = input["inputMag"];
+	input_sign = input["inputSign"];
+
+	console.log(input_mag)
+	console.log(input_sign)
 
 	while (true) {
 		const command = prompt(">> Please enter your command : ");
