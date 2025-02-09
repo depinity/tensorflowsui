@@ -38,7 +38,7 @@ async function loadTfjsLayersModel(tfjsFolder) {
         const modelJson = JSON.parse(modelJsonStr);
 
         const modelTopology = modelJson.modelTopology;
-        const weightsManifest = modelJson.weightsManifest; // array
+        const weightsManifest = modelJson.weightsManifest; 
 
         const weightDataMap = {}; // { weightName: Float32Array }
 
@@ -261,11 +261,6 @@ async function publishToDevnet() {
         
         // Save package ID to a file
         await fsPromises.writeFile('../packageId.txt', packageId);
-
-
-        
-
-
         console.log("Package ID saved to packageId.txt");
 
         return result;
@@ -289,7 +284,6 @@ async function main() {
         const convertedWeights = convertWeightsToFixed(modelTopology, weightDataMap, SCALE);
         const moveCode = generateMoveCode(convertedWeights, SCALE);
 
-        // Changed path from './sui' to './forpublish'
         await fsPromises.mkdir('./forpublish/sources', { recursive: true });
         await fsPromises.writeFile('./forpublish/sources/model.move', moveCode);
         console.log("Move code generated and saved to ./forpublish/sources/model.move");
@@ -298,52 +292,15 @@ async function main() {
         console.log("\n2. Generating Move.toml...");
         await generateMoveToml("tensorflowsui");
 
-        // 3. Publish to devnet
+        // 3. Publish to onchain
         console.log("\n3. Publishing to devnet...");
         const result = await publishToDevnet();
         console.log("Deployment completed successfully!");
-        
-        const packageId = result.effects.created?.find(item => item.owner === 'Immutable')?.reference?.objectId;
-        if (!packageId) {
-            throw new Error("Failed to extract package ID from deployment result");
-        }
-        console.log("\nPackage ID:", packageId);
-        console.log("https://suiscan.xyz/"+NETWORK+"/object/"+ packageId+"/tx-blocks");
 
-        console.log("\nTransaction Digest:", result.digest);
-
-        await storeTrainData(packageId, result.digest);
     } catch (error) {
         console.error("Error:", error);
         process.exit(1);
     }
-}
-
-async function storeTrainData(packageId, digest) {
-	try {
-        
-        const jsonData = fs.readFileSync('../warlus_with_go/mnist_selected.json', 'utf8');
-        
-        // Parse JSON string to JavaScript object
-        const mnistData = JSON.parse(jsonData);
-        
-        // Log the data structure
-        console.log('MNIST data loaded successfully');
-
-		// 서버로 요청 보내기
-		const response = await fetch('http://localhost:8083/train-set', {
-			method: 'POST', 
-			headers: { 'Content-Type': 'application/json' }, 
-			body: JSON.stringify( { train: mnistData['train'], packageId: packageId, digest: digest })
-		});
-
-		const data = await response.json();
-		console.log("Training Set Walrus Store Success", data);
-		return data;
-	} catch (error) {
-		console.error('API Call Err:', error);
-		return "";
-	}
 }
 
 main();
