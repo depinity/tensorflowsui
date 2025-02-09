@@ -12,6 +12,7 @@
   "description": "",
   "dependencies": {
     "@mysten/sui": "^0.0.0-experimental-20250117185912",
+    "axios": "^1.7.9",
     "ora": "^8.2.0",
     "prompt-sync": "^4.2.0"
   }
