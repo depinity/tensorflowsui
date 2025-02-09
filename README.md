@@ -47,7 +47,7 @@ The `@tensorflowSui_lib` provides core functionality for interpreting and execut
 ### Inference Options
 
 <p align="center">
-  <img src="inference_options.JPG" alt="inference_options" width="200"/>
+  <img src="inference_options.JPG" alt="inference_options" width="600"/>
 </p>
 
 
