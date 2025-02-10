@@ -7,6 +7,7 @@ import promptSync from 'prompt-sync';
 import ora from "ora";
 import fs from 'fs';
 
+
 const prompt = promptSync();
 
 // Read configuration from config.txt
@@ -100,11 +101,88 @@ async function run() {
 	let version_arr = [];
 
 	while (true) {
+
+		console.log("\n  ");
+
+
 		const command = prompt(">> Please enter your command : ");
 
 		switch (command.trim().toLowerCase()) {
+
+
+		case "help":
+
+
+		console.log(`
+\x1b[38;5;199m1. Initialize (init)\x1b[0m
+\x1b[38;5;147m- Publishes objects from the Move package
+- Creates two main objects:\x1b[0m
+    \x1b[38;5;226ma) SignedFixedGraph:\x1b[0m Contains all graph information from the published web3 model
+        \x1b[38;5;251m• Weights, biases, and network architecture
+        • Immutable after initialization\x1b[0m
+    \x1b[38;5;226mb) PartialDenses:\x1b[0m Stores computation results of nodes
+        \x1b[38;5;251m• Used for split transaction computation
+        • Mutable state for intermediate results\x1b[0m`);
+
+		await sleep(500);
+
+		console.log(`
+\x1b[38;5;199m2. Load Input (load input)\x1b[0m
+\x1b[38;5;147m- Fetches input data from Walrus blob storage
+- Blob contains model inputs uploaded by model publisher
+- Prepares input vectors for inference:\x1b[0m
+    \x1b[38;5;251m• input_mag: Magnitude vector
+    • input_sign: Sign vector\x1b[0m`);
+
+		await sleep(500);
+
+		console.log(`
+\x1b[38;5;199m3. Run Inference (run)\x1b[0m
+\x1b[38;5;147mThe inference process combines two optimization strategies:\x1b[0m
+
+\x1b[38;5;226mA. Split Transaction Computation (16 parts)\x1b[0m
+    \x1b[38;5;251m- Breaks down input layer → hidden layer computation
+    - Input (#49 nodes) → Hidden Layer 1 (#16 nodes)
+    - Processes in 16 separate transactions for gas efficiency\x1b[0m
+
+\x1b[38;5;226mB. PTB (Parallel Transaction Blocks)\x1b[0m
+    \x1b[38;5;251m- Handles remaining layers atomically
+    - Hidden Layer 1 → Hidden Layer 2 → Output
+    - Executes final classification in single transaction
+    - Ensures atomic state transitions\x1b[0m`);
+
+		await sleep(500);
+
+		console.log(`
+\x1b[38;5;199m4. Save Receipt to Walrus\x1b[0m
+\x1b[38;5;147m- Packages inference evidence:\x1b[0m
+    \x1b[38;5;251m• Transaction digests (tx_digest_arr)
+    • Partial dense computation proofs (partialDenses_digest_arr)
+    • State versions (version_arr)\x1b[0m
+\x1b[38;5;147m- Uploads to Walrus as receipt
+- Provides permanent proof of inference execution
+- Enables digital provenance verification
+- Returns Walrus blob ID for reference\x1b[0m`);
+
+		await sleep(500);
+
+	
+			break;
+			
 		case "init":
 			console.log("\nInitializing... \n");
+console.log(`
+\x1b[38;5;199m1. Initialize (init)\x1b[0m
+\x1b[38;5;147m- Publishes objects from the Move package
+- Creates two main objects:\x1b[0m
+\x1b[38;5;226ma) SignedFixedGraph:\x1b[0m Contains all graph information from the published web3 model
+\x1b[38;5;251m• Weights, biases, and network architecture
+• Immutable after initialization\x1b[0m
+\x1b[38;5;226mb) PartialDenses:\x1b[0m Stores computation results of nodes
+\x1b[38;5;251m• Used for split transaction computation
+• Mutable state for intermediate results\x1b[0m`);
+
+
 			let tx = new Transaction();
 
 			if (!tx.gas) {
@@ -145,15 +223,40 @@ async function run() {
 					exist = false;
 				}
 			}
+			console.log("");
+			console.log("");
 
 			console.log("SignedFixedGraph:", SignedFixedGraph);
-			console.log("PartialDenses:", PartialDenses);
+			console.log("https://suiscan.xyz/"+network+"/object/"+ SignedFixedGraph+"/tx-blocks");
 
-			console.log("Gas Used:", Number(result.effects.gasUsed.computationCost) + Number(result.effects.gasUsed.storageCost) + Number(result.effects.gasUsed.storageRebate));
+			console.log("PartialVariable:", PartialDenses);
+			console.log("https://suiscan.xyz/"+network+"/object/"+ PartialDenses+"/tx-blocks");
+
+			console.log("Gas Used (only once):", (Number(result.effects.gasUsed.computationCost) + Number(result.effects.gasUsed.storageCost) + Number(result.effects.gasUsed.storageRebate)) / Number(MIST_PER_SUI), " SUI");
 			console.log("");
+
+			console.log("");
+
+
+			console.log(`
+
+				\x1b[38;5;51m╔════════════════════════════════════════════════════════════╗
+				║  Completed! init the model  ║ "load input" to load input data from Walrus
+				╚════════════════════════════════════════════════════════════╝\x1b[0m
+				`);
+			
+
 			break;
 			
 		case "load input":
+console.log(`
+\x1b[38;5;199m2. Load Input (load input)\x1b[0m
+\x1b[38;5;147m- Fetches input data from Walrus blob storage
+- Blob contains model inputs uploaded by model publisher
+- Prepares input vectors for inference:\x1b[0m
+\x1b[38;5;251m• input_mag: Magnitude vector
+• input_sign: Sign vector\x1b[0m`);
+
 			const label = prompt(">> What label do you want? ");
 
 			console.log(label)
@@ -161,16 +264,45 @@ async function run() {
 			let input = await getInput(Number(label));
 			input_mag = input["inputMag"];
 			input_sign = input["inputSign"];
+
+
+
+			console.log(`
+
+				\x1b[38;5;51m╔════════════════════════════════════════════════════════════╗
+				║ Completed! load input data  ║ "run" to start inference
+				╚════════════════════════════════════════════════════════════╝\x1b[0m
+				`);
+			
 			
 			break;
 
 		case "run":
+console.log(`
+\x1b[38;5;199m3. Run Inference (run)\x1b[0m
+\x1b[38;5;147mThe inference process combines two optimization strategies:\x1b[0m
+
+\x1b[38;5;226mA. Split Transaction Computation (16 parts)\x1b[0m
+\x1b[38;5;251m- Breaks down input layer → hidden layer computation
+- Input (#49 nodes) → Hidden Layer 1 (#16 nodes)
+- Processes in 16 separate transactions for gas efficiency\x1b[0m
+
+\x1b[38;5;226mB. PTB (Parallel Transaction Blocks)\x1b[0m
+\x1b[38;5;251m- Handles remaining layers atomically
+- Hidden Layer 1 → Hidden Layer 2 → Output
+- Executes final classification in single transaction
+- Ensures atomic state transitions\x1b[0m`);
+
+
 			console.log('\nInference start... \n');
 
 			let totalTasks = 17
 			let spinner;
 			
 			for (let i = 0; i<totalTasks; i++) {
+
+				await sleep(500);
+
 
 				const filledBar = '█'.repeat(i+1);  
 				const emptyBar = '░'.repeat(totalTasks - i - 1); 
@@ -224,9 +356,10 @@ async function run() {
 							showObjectChanges: true,
 						}
 					})
-
+					spinner.succeed("✅ spilit transaction computation completed!");
+					
 					spinner = ora("Processing task... ").start();
-					console.log(progressBar + ` ${i+1}/${totalTasks}`);
+					console.log("\n***** Start PTB computation hidden layer 1 -> hidden layer 2 -> output *****");
 
 					for (let i=0; i < result['objectChanges'].length; i++) {
 
@@ -243,21 +376,43 @@ async function run() {
 					
 					tx_digest_arr.push(result.digest)
 					console.log("\nTx Digest:", result.digest)
+					console.log("https://suiscan.xyz/"+network+"/tx/"+ result.digest);
 
-					console.log("Gas Used: ", Number(result.effects.gasUsed.computationCost) + Number(result.effects.gasUsed.nonRefundableStorageFee));
+
+
+					console.log("Gas Used: ", (Number(result.effects.gasUsed.computationCost) + Number(result.effects.gasUsed.nonRefundableStorageFee)) / Number(MIST_PER_SUI), " SUI");
 					totalGasUsage += Number(result.effects.gasUsed.computationCost) + Number(result.effects.gasUsed.nonRefundableStorageFee)
 
 					console.log("\nresult:", result.events[0].parsedJson['value']);
 					console.log("Total Gas Used (SUI):", totalGasUsage / Number(MIST_PER_SUI))
+					spinner.succeed("✅ PTB transaction computation completed!");
 
 					const data = await store(tx_digest_arr, partialDenses_digest_arr, version_arr);
 					if (data.status === "success") {
-						console.log("\n***** Walrus Store Success *****");
+
+
+
+
+						spinner.succeed("✅ Walrus Store Success!");
 						console.log("BlobID:", data.blobId);
+						console.log('https://walruscan.com/testnet/blob/' + data.blobId);
+					
 						console.log("");
+
+						console.log("\n");
+
+console.log(`
+\x1b[38;5;199m4. Save Receipt to Walrus\x1b[0m
+\x1b[38;5;147m- Packages inference evidence:\x1b[0m
+\x1b[38;5;251m• Transaction digests (tx_digest_arr)
+• Partial dense computation proofs (partialDenses_digest_arr)
+• State versions (digest version)\x1b[0m
+\x1b[38;5;147m- Uploads to Walrus as receipt
+- Provides permanent proof of inference execution
+- Enables digital provenance verification
+- Returns Walrus blob ID for reference\x1b[0m`);
 					}
 
-					spinner.succeed("✅ Task completed!");
 					console.log("");
 
 					totalGasUsage = 0;
@@ -271,6 +426,7 @@ async function run() {
 					if (!tx.gas) {
 						console.error("Gas object is not set correctly");
 					}
+					console.log(`input layer  -> hidden layer 1 ${i+1}/${totalTasks-1}`);
 					
 					tx.moveCall({
 						target: `${TENSROFLOW_SUI_PACKAGE_ID}::graph::split_chunk_compute`,
@@ -299,7 +455,7 @@ async function run() {
 
 					spinner = ora("Processing task... ").start();
 					console.log(progressBar + ` ${i+1}/${totalTasks}`);
-
+				
 					for (let i=0; i < result['objectChanges'].length; i++) {
 
 						let parts;
@@ -315,13 +471,21 @@ async function run() {
 					
 					tx_digest_arr.push(result.digest)
 					console.log("Tx Digest:", result.digest)
+					console.log("https://suiscan.xyz/"+network+"/tx/"+ result.digest);
 
-					console.log("Gas Used:", Number(result.effects.gasUsed.computationCost) + Number(result.effects.gasUsed.nonRefundableStorageFee));
+					console.log("Gas Used:", (Number(result.effects.gasUsed.computationCost) + Number(result.effects.gasUsed.nonRefundableStorageFee)) / Number(MIST_PER_SUI) , " SUI"); 
 					console.log("");
 					totalGasUsage += Number(result.effects.gasUsed.computationCost) + Number(result.effects.gasUsed.nonRefundableStorageFee)
 				}
 			}
-			
+			console.log(`
+
+				\x1b[38;5;51m╔════════════════════════════════════════════════════════════╗
+				║  inference completed! ║ "load input" to load input data from Walrus to next inference
+				╚════════════════════════════════════════════════════════════╝\x1b[0m
+				`);
+
+
 			break;
 			
 		default:
@@ -333,77 +497,109 @@ async function run() {
 // start program
 const letters = {
     "O": [
-        " /---\\ ",
-        "|     |",
-        "|     |",
-        " \\---/ "
+        " ███ ",
+        "█   █",
+        "█   █",
+        "█   █",
+        " ███ "
     ],
     "P": [
-        "|----\\ ",
-        "|     |",
-        "|----/ ",
-        "|      "
+        "████ ",
+        "█   █",
+        "████ ",
+        "█    ",
+        "█    "
     ],
     "E": [
-        "|------",
-        "|      ",
-        "|----- ",
-        "|------"
+        "████",
+        "█   ",
+        "███ ",
+        "█   ",
+        "████"
     ],
     "N": [
-        "|\\    |",
-        "| \\   |",
-        "|  \\  |",
-        "|   \\ |"
+        "█   █",
+        "██  █",
+        "█ █ █",
+        "█  ██",
+        "█   █"
     ],
     "G": [
-        " /----\\ ",
-        "|       ",
-        "|   ---|",
-        " \\----/ "
+        " ███ ",
+        "█    ",
+        "█  ██",
+        "█   █",
+        " ███ "
     ],
     "R": [
-        "|----\\ ",
-        "|     |",
-        "|----/ ",
-        "|    \\ "
+        "████ ",
+        "█   █",
+        "████ ",
+        "█  █ ",
+        "█   █"
     ],
     "A": [
-        "  /\\  ",
-        " /  \\ ",
-        "/----\\",
-        "|    |"
-    ],
-    "P": [
-        "|----\\ ",
-        "|     |",
-        "|----/ ",
-        "|      "
+        " ███ ",
+        "█   █",
+        "█████",
+        "█   █",
+        "█   █"
     ],
     "H": [
-        "|    |",
-        "|----|",
-        "|    |",
-        "|    |"
+        "█   █",
+        "█   █",
+        "█████",
+        "█   █",
+        "█   █"
     ]
 };
 
 function printBanner(text) {
-    let output = ["", "", "", ""];
+    let output = ["", "", "", "", ""];
+    const colors = [
+        "\x1b[38;5;51m",   // Cyan
+        "\x1b[38;5;45m",   // Light Blue
+        "\x1b[38;5;39m",   // Blue
+        "\x1b[38;5;33m",   // Darker Blue
+        "\x1b[38;5;27m"    // Deep Blue
+    ];
+    const reset = "\x1b[0m";
 
     for (let char of text) {
         if (letters[char]) {
             letters[char].forEach((line, i) => {
-                output[i] += line + "  ";
+                output[i] += colors[i] + line + reset + "   ";
+            });
+        } else if (char === " ") {
+            output.forEach((_, i) => {
+                output[i] += "  ";
             });
         }
     }
 
-    console.log(output.join("\n"));
-	console.log("\n\n");
+    console.log("\n" + output.join("\n") + "\n\n");
 }
 
-printBanner("OPENGRAPH");
+printBanner("O P E N G R A P H");
+
+const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+async function displayLog() {
+    console.log(`
+\x1b[38;5;51m╔════════════════════════════════════════════════════════════╗
+║  \x1b[38;5;213mOPENGRAPH: Fully On-chain Neural Network Inference\x1b[38;5;51m        ║ 
+╚════════════════════════════════════════════════════════════╝\x1b[0m`);
+console.log("\n 'help' for more commands");
+
+console.log(`
+\x1b[38;5;51m╔════════════════════════════════════════════════════════════╗
+║                Ready to start inference!                    ║ "init" to initialize the model
+╚════════════════════════════════════════════════════════════╝\x1b[0m
+`);
+}
+
+// Call the async function
+displayLog();
 run();
 
   

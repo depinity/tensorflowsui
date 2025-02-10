@@ -1,3 +1,14 @@
+import { createCanvas } from 'canvas';
+import fs from 'fs';
+import path from 'path';
+import readline from 'readline';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+
+// Get current file path and directory (needed for ES modules)
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
 const YOUR_API_KEY = 'baMMOJA6OPy71mlpvhKCnlMWe9xlwM';
 
 const fetchResponse = async (content) => {
@@ -62,10 +73,6 @@ const parseMatrixString = (matrixString) => {
 
 // Function to save the matrix as PNG
 const saveNumberAsPNG = async (matrixString, content) => {
-  const { createCanvas } = require('canvas');
-  const fs = require('fs');
-  const path = require('path');
-
   // Create directory if it doesn't exist
   const dir = './atoma_number';
   if (!fs.existsSync(dir)) {
@@ -100,11 +107,38 @@ const saveNumberAsPNG = async (matrixString, content) => {
   fs.writeFileSync(filePath, buffer);
   
   console.log(`Saved image to: ${filePath}`);
+
+
+  console.log(`
+    \x1b[38;5;199mOpenGraph × Atoma Networks Synergy\x1b[0m
+    \x1b[38;5;147m1. OpenGraph: Pure On-chain Inference\x1b[0m
+    \x1b[38;5;251m• Fully decentralized execution
+    • Zero oracle dependencies
+    • Perfect for lightweight models
+    • Maximum security guarantee\x1b[0m
+
+    \x1b[38;5;147m2. Atoma Networks: L2 Scaling Solution\x1b[0m
+    \x1b[38;5;251m• Handles large-scale models (LLMs)
+    • Enables generative AI capabilities
+    • High-performance inference
+    • Layer 2 optimized throughput\x1b[0m
+
+    \x1b[38;5;147m3. Ecosystem Integration\x1b[0m
+    \x1b[38;5;251m• Complementary strengths
+    • Full model size spectrum
+    • Unified provenance system
+    • Complete Web3 AI solution\x1b[0m
+
+    \x1b[38;5;147m4. Verifiable Computation\x1b[0m
+    \x1b[38;5;251m• Cross-layer verification
+    • Cryptographic proof generation
+    • Transparent execution tracking
+    • Trustless result validation\x1b[0m`);
+
+    
 };
 
 // Add readline interface for keyboard input
-const readline = require('readline');
-
 const rl = readline.createInterface({
   input: process.stdin,
   output: process.stdout
@@ -130,3 +164,125 @@ const main = async () => {
 
 // Replace the example usage with the main function call
 main();
+
+
+
+// start program
+const letters = {
+  "O": [
+      " ███ ",
+      "█   █",
+      "█   █",
+      "█   █",
+      " ███ "
+  ],
+  "P": [
+      "████ ",
+      "█   █",
+      "████ ",
+      "█    ",
+      "█    "
+  ],
+  "E": [
+      "████",
+      "█   ",
+      "███ ",
+      "█   ",
+      "████"
+  ],
+  "N": [
+      "█   █",
+      "██  █",
+      "█ █ █",
+      "█  ██",
+      "█   █"
+  ],
+  "G": [
+      " ███ ",
+      "█    ",
+      "█  ██",
+      "█   █",
+      " ███ "
+  ],
+  "R": [
+      "████ ",
+      "█   █",
+      "████ ",
+      "█  █ ",
+      "█   █"
+  ],
+  "A": [
+      " ███ ",
+      "█   █",
+      "█████",
+      "█   █",
+      "█   █"
+  ],
+  "H": [
+      "█   █",
+      "█   █",
+      "█████",
+      "█   █",
+      "█   █"
+  ],
+  "X": [
+      "█   █",
+      " █ █ ",
+      "  █  ",
+      " █ █ ",
+      "█   █"
+  ],
+  "T": [
+      "█████",
+      "  █  ",
+      "  █  ",
+      "  █  ",
+      "  █  "
+  ],
+  "M": [
+      "█   █",
+      "██ ██",
+      "█ █ █",
+      "█   █",
+      "█   █"
+  ]
+};
+
+function printBanner(text) {
+  let output = ["", "", "", "", ""];
+  const colors = [
+      "\x1b[38;5;51m",   // Cyan
+      "\x1b[38;5;45m",   // Light Blue
+      "\x1b[38;5;39m",   // Blue
+      "\x1b[38;5;33m",   // Darker Blue
+      "\x1b[38;5;27m"    // Deep Blue
+  ];
+  const reset = "\x1b[0m";
+
+  for (let char of text) {
+      if (letters[char]) {
+          letters[char].forEach((line, i) => {
+              output[i] += colors[i] + line + reset + "   ";
+          });
+      } else if (char === " ") {
+          output.forEach((_, i) => {
+              output[i] += "  ";
+          });
+      }
+  }
+
+  console.log("\n" + output.join("\n") + "\n\n");
+
+  console.log(`
+
+    \x1b[38;5;51m╔════════════════════════════════════════════════════════════╗
+    ║  input data generation from atoma networks 
+    ║  we can package input data and digest it to walrus to digital provenance.
+    ║  we can use this input data to our fully on-chain inference.
+    ║  enter your prompt to generate input data
+    ╚════════════════════════════════════════════════════════════╝\x1b[0m
+    `);
+
+}
+
+printBanner("O P E N G R A P H   X   A T O M A");

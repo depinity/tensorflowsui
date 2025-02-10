@@ -1,0 +1,14 @@
+[package]
+name = "tensorflowsui"
+edition = "2024.beta"
+
+[dependencies]
+Sui = { git = "https://github.com/MystenLabs/sui.git", subdir = "crates/sui-framework/packages/sui-framework", rev = "framework/testnet" }
+
+[addresses]
+tensorflowsui = "0x0"
+std = "0x1"
+
+[dev-dependencies]
+
+[dev-addresses]
