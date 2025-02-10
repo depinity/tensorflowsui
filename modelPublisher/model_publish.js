@@ -322,10 +322,12 @@ async function main() {
 async function storeTrainData(packageId, digest) {
 	try {
         
-        const jsonData = fs.readFileSync('../warlus_with_go/mnist_selected.json', 'utf8');
+        const jsonTrainData = fs.readFileSync('../walrus/resample_convert_train.json', 'utf8');
+        const jsonTestData = fs.readFileSync('../walrus/resample_convert_test.json', 'utf8');
         
         // Parse JSON string to JavaScript object
-        const mnistData = JSON.parse(jsonData);
+        const trainData = JSON.parse(jsonTrainData);
+        const testData = JSON.parse(jsonTestData);
         
         // Log the data structure
         console.log('MNIST data loaded successfully');
@@ -334,7 +336,7 @@ async function storeTrainData(packageId, digest) {
 		const response = await fetch('http://localhost:8083/train-set', {
 			method: 'POST', 
 			headers: { 'Content-Type': 'application/json' }, 
-			body: JSON.stringify( { train: mnistData['train'], packageId: packageId, digest: digest })
+			body: JSON.stringify( { train: trainData, test: testData, packageId: packageId, digest: digest })
 		});
 
 		const data = await response.json();

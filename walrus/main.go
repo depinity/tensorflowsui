@@ -10,15 +10,30 @@ import (
 	"fmt"
 )
 
-type StoreInput struct {
-	InputMag  []uint64 `json:"inputMag"`
-	InputSign []uint64 `json:"inputSign"`
+// 개별 파일 데이터 구조
+// 개별 파일 데이터 구조
+type FileData struct {
+	Filepath string      `json:"filepath"`
+	Filename string      `json:"filename"`
+	Label    int         `json:"label"`
+	Data     DataDetails `json:"data"`
 }
 
-type StoreInputRes struct {
-	BlobID    string   `json:"blobId"`
-	InputMag  []uint64 `json:"inputMag"`
-	InputSign []uint64 `json:"inputSign"`
+// 데이터 상세 구조
+type DataDetails struct {
+	Sign []int `json:"sign"`
+	Mag  []int `json:"mag"`
+}
+
+// 최상위 JSON 구조
+type ModelData struct {
+	Train []FileData `json:"train"`
+	Test  []FileData `json:"test"`
+}
+
+type UploadTrainSetRes struct {
+	Status string `json:"status"`
+	BlobID string `json:"blobId"`
 }
 
 type StoreReq struct {
@@ -32,31 +47,47 @@ type StoreRes struct {
 	BlobID string `json:"blobId"`
 }
 
-type UploadedTrainSetRes struct {
-	Status string `json:"status"`
-	BlobID string `json:"blobId"`
+type InputReq struct {
+	Label int `json:"label"`
 }
 
-var storeInputRes StoreInputRes
-var uploadTrainSetRes UploadedTrainSetRes
+type InputRes struct {
+	BlobID    string `json:"blobId"`
+	InputMag  []int  `json:"inputMag"`
+	InputSign []int  `json:"inputSign"`
+	Label     int    `json:"label"`
+}
+
+// var storeInputRes StoreInputRes
+var uploadTrainSetRes UploadTrainSetRes
+var modelData ModelData
 
 // "/get" Handler Func
 func handleGetInput(w http.ResponseWriter, r *http.Request) {
 
 	switch r.Method {
-	case http.MethodGet:
-		json.NewEncoder(w).Encode(storeInputRes) // JSON Resp
-	default:
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-	}
-}
+	case http.MethodPost:
 
-// "/train-set" Handler Func
-func handleGetTrainSetBlobID(w http.ResponseWriter, r *http.Request) {
+		var inputReq InputReq
+		if err := json.NewDecoder(r.Body).Decode(&inputReq); err != nil {
+			http.Error(w, "Invalid JSON", http.StatusBadRequest)
+			return
+		}
 
-	switch r.Method {
-	case http.MethodGet:
-		json.NewEncoder(w).Encode(uploadTrainSetRes) // JSON Resp
+		inputRes := InputRes{}
+		for _, trainData := range modelData.Train {
+			if inputReq.Label == trainData.Label {
+
+				inputRes.BlobID = uploadTrainSetRes.BlobID
+				inputRes.InputMag = trainData.Data.Mag
+				inputRes.InputSign = trainData.Data.Sign
+				inputRes.Label = trainData.Label
+
+				break
+			}
+		}
+
+		json.NewEncoder(w).Encode(inputRes) // JSON Resp
 	default:
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 	}
@@ -135,24 +166,32 @@ func storeWalrus(storeReq StoreReq) (string, error) {
 	return blobID, nil
 }
 
-func initInput() (StoreInputRes, error) {
-	input_mag := []uint64{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 79, 44, 0, 0, 0, 0, 4, 89, 0, 0, 0, 0, 0, 59, 92, 43, 0, 0, 0, 0, 49, 89, 90, 30, 0, 0, 0, 0, 61, 81, 0, 0, 0, 0, 0, 0, 0, 0, 0}
-	input_sign := []uint64{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
-
-	storeInput := StoreInput{
-		InputMag:  input_mag,
-		InputSign: input_sign,
+func uploadTrainSet(w http.ResponseWriter, r *http.Request) {
+	// // POST 요청인지 확인
+	if r.Method != http.MethodPost {
+		http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
+		return
 	}
+
+	// JSON 디코딩
+	if err := json.NewDecoder(r.Body).Decode(&modelData); err != nil {
+		http.Error(w, "Error parsing JSON", http.StatusBadRequest)
+		return
+	}
+
+	// JSON 데이터 출력 (디버깅용)
+	fmt.Printf("Received JSON: %+v\n", modelData)
+
+	// Walrus 업로드
 	wClient := walrus.NewClient(
 		walrus.WithAggregatorURLs([]string{"https://aggregator.walrus-testnet.walrus.space"}),
 		walrus.WithPublisherURLs([]string{"https://publisher.walrus-testnet.walrus.space"}),
 	)
 
 	// Store data
-	jsonBytes, err := json.Marshal(storeInput)
+	jsonBytes, err := json.Marshal(modelData)
 	if err != nil {
-		fmt.Println("JSON err:", err)
-		return StoreInputRes{}, err
+		http.Error(w, "JSON Error", http.StatusInternalServerError)
 	}
 
 	wData := []byte(jsonBytes)
@@ -160,7 +199,7 @@ func initInput() (StoreInputRes, error) {
 
 	if err != nil {
 		log.Fatalf("Error storing data: %v", err)
-		return StoreInputRes{}, err
+		http.Error(w, "Error storing data", http.StatusInternalServerError)
 	}
 
 	var blobID string
@@ -183,61 +222,19 @@ func initInput() (StoreInputRes, error) {
 	}
 	fmt.Printf("Retrieved data: %s\n", string(retrievedData))
 
-	storeInputRes := StoreInputRes{
-		BlobID:    blobID,
-		InputMag:  input_mag,
-		InputSign: input_sign,
-	}
-
-	return storeInputRes, nil
-}
-
-func uploadTrainSet() (UploadedTrainSetRes, error) {
-
-	wClient := walrus.NewClient(
-		walrus.WithAggregatorURLs([]string{"https://aggregator.walrus-testnet.walrus.space"}),
-		walrus.WithPublisherURLs([]string{"https://publisher.walrus-testnet.walrus.space"}),
-	)
-
-	uploadedFile, err := wClient.StoreFile("./mnist_selected.json", &walrus.StoreOptions{Epochs: 5})
-	if err != nil {
-		log.Fatalf("Error storing file: %v", err)
-		return UploadedTrainSetRes{}, err
-	}
-	fmt.Printf("Stored file blob ID: %s\n", uploadedFile)
-
-	err = wClient.ReadToFile(uploadedFile.Blob.BlobID, "./read_mnist_selected.json", nil)
-	if err != nil {
-		log.Fatalf("Error reading file: %v", err)
-		return UploadedTrainSetRes{}, err
-	}
-	fmt.Println("File retrieved successfully")
-
-	return UploadedTrainSetRes{
+	uploadTrainSetRes = UploadTrainSetRes{
 		Status: "success",
-		BlobID: uploadedFile.Blob.BlobID,
-	}, nil
+		BlobID: blobID,
+	}
+
+	json.NewEncoder(w).Encode(uploadTrainSetRes) // JSON Resp
 }
 
 func main() {
 
-	_storeInputRes, err := initInput()
-	if err != nil {
-		fmt.Println("Failed to store input")
-		return
-	}
-	storeInputRes = _storeInputRes
-
-	_uploadedTrainSetRes, err := uploadTrainSet()
-	if err != nil {
-		fmt.Println("Failed to upload train set")
-		return
-	}
-	uploadTrainSetRes = _uploadedTrainSetRes
-
 	// Handler
+	http.HandleFunc("/train-set", uploadTrainSet)
 	http.HandleFunc("/get", handleGetInput)
-	http.HandleFunc("/train-set", handleGetTrainSetBlobID)
 	http.HandleFunc("/store", handleStore)
 
 	fmt.Println("Server is running...")

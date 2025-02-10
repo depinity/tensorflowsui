@@ -58,21 +58,14 @@ if (!PRIVATE_KEY) {
 	console.error("Please provide a PRIVATE_KEY in .env file");
 }
 
-async function getInput() {
+async function getInput(label) {
 	try {
-		const response = await fetch('http://localhost:8083/get');
-		const data = await response.json();
-		console.log(data);
-		return data;
-	} catch (error) {
-		console.error('API Call Err:', error)
-		return "";
-	}
-}
+		const response = await fetch('http://localhost:8083/get', {
+			method: 'POST', 
+			headers: { 'Content-Type': 'application/json' }, 
+			body: JSON.stringify({ label: label }) // JSON 데이터 변환
+		  });
 
-async function getTrainSetBlobID() {
-	try {
-		const response = await fetch('http://localhost:8083/train-set');
 		const data = await response.json();
 		console.log(data);
 		return data;
@@ -161,9 +154,14 @@ async function run() {
 			break;
 			
 		case "load input":
-			let input = await getInput();
+			const label = prompt(">> What label do you want? ");
+
+			console.log(label)
+
+			let input = await getInput(Number(label));
 			input_mag = input["inputMag"];
 			input_sign = input["inputSign"];
+			
 			break;
 
 		case "run":
@@ -321,7 +319,6 @@ async function run() {
 					console.log("Gas Used:", Number(result.effects.gasUsed.computationCost) + Number(result.effects.gasUsed.nonRefundableStorageFee));
 					console.log("");
 					totalGasUsage += Number(result.effects.gasUsed.computationCost) + Number(result.effects.gasUsed.nonRefundableStorageFee)
-					
 				}
 			}
 			
