@@ -369,10 +369,33 @@ Our development roadmap outlines planned expansions across three key areas:
 We want to co-develop with those who share our vision.  
 Feel free to reach out at any time via the link or email below:
 
+https://www.opengraphlabs.xyz/
+
+
 - **LinkedIn**: [Jun-hwan Kwon](https://www.linkedin.com/in/jun-hwan-kwon/)
 - **Email**: [gr0442@gmail.com](mailto:gr0442@gmail.com)
 
-Junhwan Kwon, Ph.D.
+Junhwan Kwon, Ph.D. by OpenGraph
+
+
+- **LinkedIn**: [yoong-doo Noh](https://www.linkedin.com/in/yoongdoo-noh-459875168/)
+- **Email**: [yoongdoo0819@gmail.com](mailto:yoongdoo0819@gmail.com)
+
+Yoongdoo Noh, by OpenGraph
+
+
+- **LinkedIn**: [Julia Kim](https://www.linkedin.com/in/julia-kim-62302a21b/)
+- **Email**: [jooho0129@gmail.com](mailto:jooho0129@gmail.com)
+
+Julia Kim, by OpenGraph
+
+
+- **Email**: [styu12@naver.com](mailto:styu12@naver.com)
+
+Jarry Han, Sui Ambassador, by Sui Korea
+
+and, Sui Korea peoples.
+
 
 ## License
 
