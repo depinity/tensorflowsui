@@ -179,6 +179,13 @@ The publisher will:
 - Save the package ID for future reference
 
 
+-----------------------------------------------------------------------------
+SUI AI Typoon Hackathon transaction (model_publisher/publish_model.js):
+
+https://suiscan.xyz/testnet/tx/CRiyiUuynovrkrESxRzYBnDxR9qJTyZaJXR7uVXLaNAP
+
+-----------------------------------------------------------------------------
+
 ### 3. Model User (./Model_user)
 - Performs model inference
 - Verifies execution results
@@ -231,6 +238,47 @@ For using models from SUI packageId:
    - All transaction trajectories are automatically uploaded to Walrus
    - Provides verifiable proof of computation
    - Access results via Walrus Explorer: `https://walruscan.com/testnet/account/{blobId}`
+
+-----------------------------------------------------------------------------
+SUI AI Typoon Hackathon transaction (model_user/inference.js):
+
+init
+https://suiscan.xyz/testnet/tx/GkGjKAaxFi4RMp7wCYXmZFti6VJVewcDYcVi8mUnRzAj
+
+Fixedgraph object
+https://suiscan.xyz/testnet/object/0xf28bc3c057373834cb63582ca4ce673e0ebada4fd3ad898d61f70e2d33a12e1e/tx-blocks
+partial object
+https://suiscan.xyz/testnet/object/0x6428ccab98ddce1a665e878327f29e84736df986b9ba83f4bd2f77a500794d2b/tx-blocks
+
+
+run
+
+input layer -> layer 1 (16 split transactions)
+1 : https://suiscan.xyz/testnet/tx/9H2hfK6pB88c1nb5yo4tAdLmpus9cz3X11AnJVzWM7gZ
+2: https://suiscan.xyz/testnet/tx/UPrZU8TgcmEbn58djHCK8UZ1f8tpzAsFWh4tLgyHdr9
+3: https://suiscan.xyz/testnet/tx/75npkzNPCEcNycnLXHzi3njhsMtSFtKUhTwWwwMuemB2
+4: https://suiscan.xyz/testnet/tx/64LaxLN7znxS1YZs7QFqY4V8XfCBUVBgJipVFeqUhXF4
+5: https://suiscan.xyz/testnet/tx/5CgUWEwZUv7vGzCPbqbVrtNbiRbcMe7aVHENBamcutxj
+6: https://suiscan.xyz/testnet/tx/6ZafBkQHCogd729Fa7WGunrizVhYwRgnbweDaB6hVZR5
+7: https://suiscan.xyz/testnet/tx/Dkw9Lp8R2FikcR396BeRhqo6tZjgZU6hjN92W1eAFnAH
+8: https://suiscan.xyz/testnet/tx/B7uy2mnJtGRHyxrGYG8mqHqBJXHEim73ort8cLiEka7D
+9: https://suiscan.xyz/testnet/tx/DNidRTdRGTikybYXUBEP5TBycfBon4AbyLqWpiXG7HxB
+10: https://suiscan.xyz/testnet/tx/G1AyVfjXsYHHrsWUqv2guVUsqyLheTPpq4SPp8d52Co2
+11: https://suiscan.xyz/testnet/tx/B8DRJpNYq3pM7WzDcxtpfhZ7pRmWA1dgwfWKSGMip28n
+12: https://suiscan.xyz/testnet/tx/AZVvS8L4z7HYMdu9vdBS6GxP7WBAjphoQZc6QsdNeLrL
+13: https://suiscan.xyz/testnet/tx/2hsHW5U2D1NNwjbKZ6aTwnQ3RExviVf8A24p1ZMBLHvk
+14: https://suiscan.xyz/testnet/tx/7LgJWnvpwcsqDu1Z9fpraqrsGxocz3cXtCDBRrwWc6G5
+15: https://suiscan.xyz/testnet/tx/HVkWiT17TdHmGZA6apc6ySB4hpa9VNBTYknkjCxRSicx
+16: https://suiscan.xyz/testnet/tx/HVfEbbXRGhfHwpXxBrHhQ7bucTAy4k5rztSyKGkcfUvW
+
+
+layer 1 -> layer 2 -> output (PTB transaction)
+
+https://suiscan.xyz/testnet/tx/BBSUh8ujnHGAVGft6NvPq632gjVg1GEbCiM7W1eqBrd9
+
+-----------------------------------------------------------------------------
+
+
 
 ### 4. Atoma Framework (./atoma)
 - Handles input data generation and preprocessing
