@@ -37,15 +37,15 @@ async function convertImage(imagePath, scale = 2) {
     }
     
     const signs = [];
-    const magnitudes = [];
+    const mags = [];
     
     for (const val of data) {
         const [sign, mag] = floatToFixed(val, scale);
         signs.push(sign);
-        magnitudes.push(mag);
+        mags.push(mag);
     }
     
-    return { signs, magnitudes };
+    return { sign: signs, mag: mags };
 }
 
 async function processDirectory(dirPath, outputPath) {
@@ -59,15 +59,15 @@ async function processDirectory(dirPath, outputPath) {
             // Extract label from filename (format: xxxxx_y.png)
             const label = parseInt(file.split('_')[1]);
             const imagePath = path.join(dirPath, file);
-            const { signs, magnitudes } = await convertImage(imagePath);
+            const { sign, mag } = await convertImage(imagePath);
             
             results.push({
                 filepath: imagePath,
                 filename: file,
                 label: label,
                 data: {
-                    signs: signs,
-                    magnitudes: magnitudes
+                    sign: sign,
+                    mag: mag
                 }
             });
             
