@@ -322,8 +322,8 @@ async function main() {
 async function storeTrainData(packageId, digest) {
 	try {
         
-        const jsonTrainData = fs.readFileSync('../walrus/resample_convert_train.json', 'utf8');
-        const jsonTestData = fs.readFileSync('../walrus/resample_convert_test.json', 'utf8');
+        const jsonTrainData = fs.readFileSync('./web2_datasets/resample_convert_train.json', 'utf8');
+        const jsonTestData = fs.readFileSync('./web2_datasets/resample_convert_test.json', 'utf8');
         
         // Parse JSON string to JavaScript object
         const trainData = JSON.parse(jsonTrainData);
