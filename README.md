@@ -130,18 +130,18 @@ This project aims to establish a robust framework for maintaining digital proven
 
 The system consists of several key components working together:
 
-### 1. Web3.0 Layer (./warlus_with_go, ./tensorflowSui_lib)
+### 1. Web3.0 Layer (./walrus, ./tensorflowSuiLib)
 - Handles blockchain interactions and smart contract execution
 - Manages digital signatures and provenance certification
 - Provides verifiable execution receipts
 
 Start the Go server that handles Walrus interactions:
 ```bash
-cd warlus_with_go
+cd walrus
 go run .
 ```
 
-### 2. Model Publisher (./Model_publisher)
+### 2. Model Publisher (./modelPublisher)
 - Deploys AI models to the blockchain
 - Manages model versioning and updates
 - Handles model weight distribution
@@ -167,7 +167,7 @@ The Model Publisher simplifies the process of deploying Web2 AI models to the Su
 
 3. **Run the Publisher**
    ```bash
-   cd Model_publisher
+   cd modelPublisher
    node model_publish.js
    ```
 
@@ -179,7 +179,7 @@ The publisher will:
 - Save the package ID for future reference
 
 
-### 3. Model User (./Model_user)
+### 3. Model User (./modelUser)
 - Performs model inference
 - Verifies execution results
 - Interacts with the blockchain for provenance tracking
@@ -193,7 +193,7 @@ For using models from SUI packageId:
 
 1. **Setup**
    ```bash
-   cd Model_user
+   cd modelUser
    npm install
    ```
 
@@ -404,11 +404,11 @@ This project is licensed under the Apache License 2.0 - see the LICENSE file for
 ## SUI AI Typhoon Hackathon Transactions
 
 ### 1. Model Publishing
-**Transaction (model_publisher/publish_model.js)**
+**Transaction (modelPublisher/publish_model.js)**
 - [View Model Deployment Transaction](https://suiscan.xyz/testnet/tx/CRiyiUuynovrkrESxRzYBnDxR9qJTyZaJXR7uVXLaNAP)
 
 ### 2. Model Inference
-**Initialization (model_user/inference.js)**
+**Initialization (modelUser/inference.js)**
 - [View Init Transaction](https://suiscan.xyz/testnet/tx/GkGjKAaxFi4RMp7wCYXmZFti6VJVewcDYcVi8mUnRzAj)
 
 **Created Objects**
