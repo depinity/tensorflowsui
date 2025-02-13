@@ -394,7 +394,7 @@ Julia Kim, by OpenGraph
 
 Jarry Han, Sui Ambassador, by Sui Korea
 
-and, Sui Korea peoples.
+and, Sui Korea peoples. lead by Harrison Kim.
 
 
 ## License
