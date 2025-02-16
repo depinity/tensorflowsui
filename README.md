@@ -4,7 +4,7 @@
 
 🏆 **Winner - 1st Place, Sui AI Typhoon Hackathon (Sui Track)**
 <p align="center">
-  <img src="sui_award.png" alt="sui_award" width="200"/>
+  <img src="sui_award.JPG" alt="sui_award" width="200"/>
 </p>
 
 join and stay tuned for our future fantastic updates.
