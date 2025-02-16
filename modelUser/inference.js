@@ -311,13 +311,14 @@ console.log(`
 				if (i == totalTasks-1) {
 
 					let final_tx = new Transaction();
+					final_tx.setGasBudget(100000000)
 
 					if (!final_tx.gas) {
 						console.error("Gas object is not set correctly");
 					}
 
 					let res_act1 = final_tx.moveCall({
-						target: `${TENSROFLOW_SUI_PACKAGE_ID}::graph::split_chunk_finalize`,
+						target: `${TENSROFLOW_SUI_PACKAGE_ID}::model::split_chunk_finalize`,
 						arguments: [
 							final_tx.object(PartialDenses),
 							final_tx.pure.string('dense'),
@@ -325,7 +326,7 @@ console.log(`
 					})
 
 					let res_act2 = final_tx.moveCall({
-						target: `${TENSROFLOW_SUI_PACKAGE_ID}::graph::ptb_layer`,
+						target: `${TENSROFLOW_SUI_PACKAGE_ID}::model::ptb_layer`,
 						arguments: [
 							final_tx.object(SignedFixedGraph),
 							res_act1[0],
@@ -336,7 +337,7 @@ console.log(`
 					})
 
 					final_tx.moveCall({
-						target: `${TENSROFLOW_SUI_PACKAGE_ID}::graph::ptb_layer_arg_max`,
+						target: `${TENSROFLOW_SUI_PACKAGE_ID}::model::ptb_layer_arg_max`,
 						arguments: [
 							final_tx.object(SignedFixedGraph),
 							res_act2[0],
@@ -422,6 +423,7 @@ console.log(`
 				} else {
 
 					let tx = new Transaction();
+					tx.setGasBudget(100000000)
 
 					if (!tx.gas) {
 						console.error("Gas object is not set correctly");
@@ -429,7 +431,7 @@ console.log(`
 					console.log(`input layer  -> hidden layer 1 ${i+1}/${totalTasks-1}`);
 					
 					tx.moveCall({
-						target: `${TENSROFLOW_SUI_PACKAGE_ID}::graph::split_chunk_compute`,
+						target: `${TENSROFLOW_SUI_PACKAGE_ID}::model::split_chunk_compute`,
 						arguments: [
 							tx.object(SignedFixedGraph),
 							tx.object(PartialDenses),
