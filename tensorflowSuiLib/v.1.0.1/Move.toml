@@ -1,13 +1,13 @@
 [package]
 name = "tensorflowsui"
 edition = "2024.beta"
-published-at = "0x068c9c0c7c9a1fcd44d9af6bebe5d4e364cfb79eb4a1c4e0c78a88aee59c83c7"
+published-at = "0xf8eb68f38b428de73242f50031b57c644d42065b8099b0c801e9e6f1f6cc4c6d"
 
 [dependencies]
 Sui = { git = "https://github.com/MystenLabs/sui.git", subdir = "crates/sui-framework/packages/sui-framework", rev = "framework/mainnet" }
 
 [addresses]
-tensorflowsui = "0x068c9c0c7c9a1fcd44d9af6bebe5d4e364cfb79eb4a1c4e0c78a88aee59c83c7"
+tensorflowsui = "0xf8eb68f38b428de73242f50031b57c644d42065b8099b0c801e9e6f1f6cc4c6d"
 std = "0x1"
 
 [dev-dependencies]

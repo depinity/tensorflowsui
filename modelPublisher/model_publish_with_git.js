@@ -268,6 +268,7 @@ function generateMoveCode(convertedWeights, scale) {
     let moveCode = `module models::model {
     use sui::tx_context::TxContext;
     use tensorflowsui::graph;
+    use tensorflowsui::tensor;
 
     public fun create_model_signed_fixed(graph: &mut graph::SignedFixedGraph, scale: u64) {
 `;
@@ -383,6 +384,7 @@ edition = "2024.beta"
 
 [dependencies]
 Sui = { git = "https://github.com/MystenLabs/sui.git", subdir = "crates/sui-framework/packages/sui-framework", rev = "framework/${NETWORK}" }
+
 tensorflowsui = { git = "https://github.com/depinity/tensorflowsui.git", subdir = "tensorflowSuiLib/v.1.0.1", rev = "main" }
 
 [addresses]
