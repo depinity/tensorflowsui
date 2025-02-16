@@ -1,5 +1,5 @@
 [package]
-name = "Model"
+name = "model"
 edition = "2024.beta"
 
 [dependencies]
@@ -7,7 +7,7 @@ Sui = { git = "https://github.com/MystenLabs/sui.git", subdir = "crates/sui-fram
 tensorflowsui = { git = "https://github.com/depinity/tensorflowsui.git", subdir = "tensorflowSuiLib/v.1.0.1", rev = "main" }
 
 [addresses]
-model = "0x0"
+models = "0x0"
 
 [dev-dependencies]
 

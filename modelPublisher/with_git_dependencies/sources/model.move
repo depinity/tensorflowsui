@@ -1,4 +1,4 @@
-module tensorflowsui::model {
+module models::model {
     use sui::tx_context::TxContext;
     use tensorflowsui::graph;
     use tensorflowsui::tensor;

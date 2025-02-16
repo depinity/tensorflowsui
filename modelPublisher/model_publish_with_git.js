@@ -265,7 +265,7 @@ function convertWeightsToFixed(modelTopology, weightDataMap, scale = 2) {
 }
 
 function generateMoveCode(convertedWeights, scale) {
-    let moveCode = `module tensorflowsui::model {
+    let moveCode = `module models::model {
     use sui::tx_context::TxContext;
     use tensorflowsui::graph;
     use tensorflowsui::tensor;
@@ -379,7 +379,7 @@ function generateMoveCode(convertedWeights, scale) {
 // 2. Move.toml generation
 async function generateMoveToml(moduleName) {
     const moveTomlContent = `[package]
-name = "Model"
+name = "model"
 edition = "2024.beta"
 
 [dependencies]
@@ -387,7 +387,7 @@ Sui = { git = "https://github.com/MystenLabs/sui.git", subdir = "crates/sui-fram
 tensorflowsui = { git = "https://github.com/depinity/tensorflowsui.git", subdir = "tensorflowSuiLib/v.1.0.1", rev = "main" }
 
 [addresses]
-model = "0x0"
+models = "0x0"
 
 [dev-dependencies]
 
