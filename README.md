@@ -2,6 +2,19 @@
   <img src="opengraph.png" alt="OpenGraph" width="200"/>
 </p>
 
+🏆 **Winner - 1st Place, Sui AI Typhoon Hackathon (Sui Track)**
+<p align="center">
+  <img src="sui_award.png" alt="sui_award" width="200"/>
+</p>
+
+join and stay tuned for our future fantastic updates.
+https://x.com/OpenGraph_Labs
+
+
+latest version (v1.0.1) packageId: 0x068c9c0c7c9a1fcd44d9af6bebe5d4e364cfb79eb4a1c4e0c78a88aee59c83c7
+
+
+
 # Tensorflowsui
 
 Tensorflowsui aims to bridge **Web2-based DL/ML models** to a **fully decentralized on-chain environment**, enhancing the **transparency**, **reproducibility**, **auditability**, **operational efficiency**, and **connectivity** of AI models. By providing trust and predictability for otherwise untestable "black box" AI systems, Tensorflowsui delivers effective **risk management** solutions for AI models.
