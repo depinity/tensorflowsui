@@ -268,7 +268,6 @@ function generateMoveCode(convertedWeights, scale) {
     let moveCode = `module models::model {
     use sui::tx_context::TxContext;
     use tensorflowsui::graph;
-    use tensorflowsui::tensor;
 
     public fun create_model_signed_fixed(graph: &mut graph::SignedFixedGraph, scale: u64) {
 `;
@@ -379,7 +378,7 @@ function generateMoveCode(convertedWeights, scale) {
 // 2. Move.toml generation
 async function generateMoveToml(moduleName) {
     const moveTomlContent = `[package]
-name = "model"
+name = "Model"
 edition = "2024.beta"
 
 [dependencies]
@@ -416,7 +415,7 @@ async function publishToNet() {
 
     const tx = new Transaction();
     tx.setSender(signer.getPublicKey().toSuiAddress());
-    tx.setGasBudget(45000000);
+    tx.setGasBudget(500000000);
     const upgradeCap = tx.publish({ modules, dependencies });
     tx.transferObjects([upgradeCap], signer.getPublicKey().toSuiAddress());
 

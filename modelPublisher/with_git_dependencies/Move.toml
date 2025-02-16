@@ -1,5 +1,5 @@
 [package]
-name = "model"
+name = "Model"
 edition = "2024.beta"
 
 [dependencies]
