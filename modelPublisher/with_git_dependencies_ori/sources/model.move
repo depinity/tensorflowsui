@@ -1,4 +1,4 @@
-module tensorflowsui::model {
+module models::model {
     use sui::tx_context::TxContext;
     use tensorflowsui::graph;
     use tensorflowsui::tensor;
@@ -53,45 +53,48 @@ module tensorflowsui::model {
 
     }
 
-    entry public fun split_chunk_compute(
-        graph_obj: &graph::SignedFixedGraph,
-        pd: &mut graph::PartialDenses,
-        partial_name: vector<u8>,
-        input_magnitude: vector<u64>, input_sign: vector<u64>,
-        activation_type: u64,
-        start_j: u64,
-        end_j: u64
-    ) {
-        graph::split_chunk_compute(graph_obj, pd, partial_name, input_magnitude, input_sign, activation_type, start_j, end_j);    
-    }
+entry public fun split_chunk_compute(
+    graph_obj: &graph::SignedFixedGraph,
+    pd: &mut graph::PartialDenses,
+    partial_name: vector<u8>,
+    input_magnitude: vector<u64>,input_sign: vector<u64>,
+    activation_type: u64,
+    start_j: u64,
+    end_j: u64
+) {
 
-    entry public fun split_chunk_finalize(
-        pd: &mut graph::PartialDenses,
-        partial_name: vector<u8>
-    ): (vector<u64>, vector<u64>, u64) {
-        let mut results_mag = vector::empty<u64>();
-        let mut result_sign = vector::empty<u64>();
-        let mut results;
-        let (_results_mag, _result_sign, _results) = graph::split_chunk_finalize(pd, partial_name);
+    graph::split_chunk_compute(graph_obj, pd, partial_name, input_magnitude, input_sign, activation_type, start_j, end_j);    
+}
 
-        results_mag = _results_mag;
-        result_sign = _result_sign;
-        results = _results;
+entry public fun split_chunk_finalize(
+            pd: &mut graph::PartialDenses,
+    partial_name: vector<u8>
+): (vector<u64>, vector<u64>, u64) {
+    
+    let mut results_mag = vector::empty<u64>();
+    let mut result_sign = vector::empty<u64>();
+    let mut results;
+    let (_results_mag, _result_sign, _results) = graph::split_chunk_finalize(pd, partial_name);
 
-        (results_mag, result_sign, results)
-    }
+    results_mag = _results_mag;
+    result_sign = _result_sign;
+    results = _results;
 
-    entry public fun ptb_layer(
-        graph: &graph::SignedFixedGraph,
-        input_magnitude: vector<u64>, input_sign: vector<u64>,
-        scale: u64, name: vector<u8>
-    ) : (vector<u64>, vector<u64>, u64) {
+    (results_mag, result_sign, results)
+}
+
+
+    entry public fun ptb_layer(graph: &graph::SignedFixedGraph,
+        input_magnitude: vector<u64>,input_sign: vector<u64>,scale: u64, name: vector<u8>
+        ) : (vector<u64>, vector<u64>, u64){
+
         let mut results_mag = vector::empty<u64>();
         let mut result_sign = vector::empty<u64>();
         let mut results;
 
         let (_results_mag, _result_sign, _results) = graph::ptb_layer(graph, input_magnitude, input_sign, scale, name);
 
+
         results_mag = _results_mag;
         result_sign = _result_sign;
         results = _results;
@@ -99,14 +102,16 @@ module tensorflowsui::model {
         (results_mag, result_sign, results)
     }
 
-    entry public fun ptb_layer_arg_max(
-        graph: &graph::SignedFixedGraph,
-        input_magnitude: vector<u64>, input_sign: vector<u64>,
-        scale: u64, name: vector<u8>
-    ) : u64 {
+    entry public fun ptb_layer_arg_max(graph: &graph::SignedFixedGraph,
+        input_magnitude: vector<u64>,input_sign: vector<u64>,scale: u64, name: vector<u8>
+        ) : u64{
+
         let results = graph::ptb_layer_arg_max(graph, input_magnitude, input_sign, scale, name);
         results
     }
+
+
+    
 
     public entry fun initialize(ctx: &mut TxContext) {
         let mut graph = graph::create_signed_graph(ctx);
