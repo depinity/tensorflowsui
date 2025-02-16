@@ -390,6 +390,7 @@ https://www.opengraphlabs.xyz/
 
 - **LinkedIn**: [Jun-hwan Kwon](https://www.linkedin.com/in/jun-hwan-kwon/)
 - **Email**: [gr0442@gmail.com](mailto:gr0442@gmail.com)
+- **Telegram**: [@BradleyKwon](https://t.me/BradleyKwon)
 
 Junhwan Kwon, Ph.D. by OpenGraph
 
@@ -407,6 +408,7 @@ Julia Kim, by OpenGraph
 
 
 - **Email**: [styu12@naver.com](mailto:styu12@naver.com)
+
 
 Jarry Han, Sui Ambassador, by Sui Korea
 
