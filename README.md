@@ -8,6 +8,9 @@
 </p>
 https://x.com/SuiNetwork/status/1890575219934523803
 
+
+WE re-publish https://github.com/OpenGraphLabs/tensorflowSui
+
 ---
 
 join and stay tuned for our future fantastic updates.
